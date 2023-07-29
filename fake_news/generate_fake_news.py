@@ -14,13 +14,14 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--model_name', default='gpt-4')
     parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/preprocessed/keywords/2019_2022/keywords.json')
+    parser.add_argument('--id', default=0, type=int)
     args = parser.parse_args()
 
     # Open the dataset
     with open(args.file_path, 'r') as F:
         data = json.load(F)
 
-    timeline = get_data_by_id(data['log'], 1)
+    timeline = get_data_by_id(data['log'], args.id)
 
     system_content = (
         # "Please generate ONE fake news article following the given conditions.\n"
@@ -30,7 +31,7 @@ def main():
         "Please generate ONE fake news based on the following conditions from those articles.\n"
         "\n"
         "Conditions of fake news.\n"
-        "- It needs to contain fake, headline, date(YYYY-MM-DD), sub_description and content properties.\n"
+        "- It needs to contain fake, headline, short_description, authors, date(YYYY-MM-DD), and content properties.\n"
         "- Set the fake property of the generated fake news to True.\n"
         # "- It smoothly connects to articles that is earlier in the timeline.\n"
         # "- It contradicts articles that comes later in the timeline.\n"
@@ -44,8 +45,9 @@ def main():
         user_content += (
             f"fake: False\n"
             f"headline: {data['headline']}\n"
-            f"date: {data['date']}\n"
             f"short_description: {data['short_description']}\n"
+            f"authors: {data['authors']}\n"
+            f"date: {data['date']}\n"
             f"content: {data['content']}\n"
             "\n"
         )
