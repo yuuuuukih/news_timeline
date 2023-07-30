@@ -2,6 +2,14 @@
 
 This script aims to process the raw news category dataset to JSON format. This includes the addition of the year, month, and day information as properties.
 
+## Dependencies
+- Using kaggle dataset "News Category Dataset"
+[News Category Dataset](https://www.kaggle.com/datasets/rmisra/news-category-dataset?resource=download)
+
+```
+kaggle datasets download -d rmisra/news-category-dataset
+```
+
 ## How to run
 
 To run the script, use the following command:

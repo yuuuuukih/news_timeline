@@ -26,4 +26,4 @@ kaggle datasets download -d rmisra/news-category-dataset
 ## How to preprocess
 1. Download the above dataset.
 2. Execute `python data_preprocess/without_content/process_data_without_content.py`
-3. Execute `data_preprocess/with_content/process_data_with_content.py`
+3. Execute `python data_preprocess/with_content/process_data_with_content.py`
