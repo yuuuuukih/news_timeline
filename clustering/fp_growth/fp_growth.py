@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.ml.fpm import FPGrowth
 
-def fp_growth(data, min_support=0.5, min_confidence=0.6, show=True):
+def fp_growth(data, min_support=0.5, min_confidence=0.6, show=False):
     # Create the Spark session
     spark = SparkSession.builder \
         .appName("FP-growth") \
@@ -20,10 +20,12 @@ def fp_growth(data, min_support=0.5, min_confidence=0.6, show=True):
     print(f"min_support: {min_support}, min_confidence: {min_confidence}")
     if show:
         model.freqItemsets.show()
+        return None
     else:
         frequent_itemsets = model.freqItemsets.collect()
         output = [{'freq': row['freq'], 'item': row['items']} for row in frequent_itemsets]
-        print(output)
+        return output
+
 
     # Generate the association rules
     # association_rules = model.associationRules
