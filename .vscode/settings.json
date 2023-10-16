@@ -1,0 +1,10 @@
+{
+    "python.analysis.extraPaths": [
+        "/home/hara/miniconda3/envs/t5_temporal_finetune_virtual_env/lib/python3.11/site-packages/",
+        "/home/hara/miniconda3/envs/news_timeline_virtual_env/lib/python3.11/site-packages/",
+        "/home/hara/miniconda3/envs/news_timeline_virtual_env/lib/python3.11/site-packages/",
+        "/home/hara/news_timeline/fake_news",
+        "./clustering/fp_growth",
+        "./clustering/fp_growth"
+    ]
+}

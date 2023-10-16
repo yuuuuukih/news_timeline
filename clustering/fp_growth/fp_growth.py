@@ -23,7 +23,7 @@ def fp_growth(data, min_support=0.5, min_confidence=0.6, show=False):
         return None
     else:
         frequent_itemsets = model.freqItemsets.collect()
-        output = [{'freq': row['freq'], 'item': row['items']} for row in frequent_itemsets]
+        output = [{'freq': row['freq'], 'items': row['items']} for row in frequent_itemsets]
         return output
 
 

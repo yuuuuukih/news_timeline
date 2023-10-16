@@ -82,7 +82,7 @@ def save_log(output, out_dir):
         for md in [keywords_md, keywords_cd_md]:
             with open(md, 'a') as md_file:
                 md_file.write(f"| {output['id']} | {', '.join(keywords)} | {output['length']} |\n")
-                print(f'Data saved to {md_name}.md')
+                print(f'Data is saved to {md_name}.md')
 
 
 def main():
