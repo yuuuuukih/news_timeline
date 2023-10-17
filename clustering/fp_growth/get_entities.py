@@ -1,9 +1,15 @@
 import os
 import json
+import random
 from argparse import ArgumentParser
 
 from preprocess import TextProcessor
 from fp_growth import fp_growth
+
+def get_sorted_random_list(list, num):
+    new_list = random.sample(list, min(num, len(list)))
+    new_list = sorted(new_list, key=lambda x: x['freq'])
+    return new_list
 
 def save_entities(data, out_dir, file_name='fp_growth_entities'):
     data_json = os.path.join(out_dir, f'{file_name}.json')
@@ -120,7 +126,6 @@ def main():
         # if len(entities['items']) >= 2 and entities['freq'] < 50:
             filtered_output.append(entities)
 
-
     ## Save
     data = {
         "preprocess": {
@@ -143,9 +148,9 @@ def main():
             "list": removed_words[:args.max_for_removed_words]
         },
         "entities": {
-            "filtering conditions": args.m,
+            "commentso": args.m,
             "The number of entities": f"{min(args.max_output, len(filtered_output))}/{len(filtered_output)}",
-            "list": filtered_output[:args.max_output],
+            "list": get_sorted_random_list(filtered_output, args.max_output), # 旧filtered_output[:args.max_output]
         }
     }
     if args.no_save:
