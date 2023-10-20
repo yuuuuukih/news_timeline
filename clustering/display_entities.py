@@ -23,17 +23,17 @@ def display_json_as_table(json_data):
         # Create a new table data list for each element
         table_data = []
         # Add header row for this section
-        header = ["items", "freq"]
+        header = ["ID", "items", "freq"]
         table_data.append(header)
         # # Add each entity from the 'list' to the table with text wrapping
         for el in entities['list']:
-            table_data.append([el['items'], el['freq']])
+            table_data.append([el['ID'], el['items'], el['freq']])
         # Output the table for this section
         print(tabulate(table_data, headers="firstrow", tablefmt="pretty"))
 
 
 if __name__ == '__main__':
-    PATH_JSON = '/mnt/mint/hara/datasets/news_category_dataset/clustering/fp_growth_entities.json'
+    PATH_JSON = '/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fp_growth_entities.json'
     with open(PATH_JSON, 'r') as json_file:
             json_data = json.load(json_file)
 

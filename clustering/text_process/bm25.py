@@ -1,4 +1,5 @@
 import math
+from tqdm import tqdm
 
 class OkapiBM25:
     def __init__(self, corpus, k1=1.2, b=0.75, delta=0):
@@ -35,7 +36,8 @@ class OkapiBM25:
 
     def get_term_scores(self):
         term_scores = {}
-        for doc in self.corpus:
+        print("Calculating BM25 scores...")
+        for doc in tqdm(self.corpus):
             for term in set(doc):
                 if term not in term_scores.keys():
                     scores = self.score([term])

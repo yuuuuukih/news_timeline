@@ -13,8 +13,8 @@ from nltk.corpus import wordnet
 # nltk.download('wordnet')
 # nltk.download('averaged_perceptron_tagger')
 
-from tfidf import CustomTFIDF
-from bm25 import OkapiBM25
+from .tfidf import CustomTFIDF
+from .bm25 import OkapiBM25
 
 # decorator
 def print_processing_status(func):
@@ -67,7 +67,7 @@ class TextProcessor:
     def remove_stop_words(self):
         def _remove_stop_words_func(doc):
             # https://www.geeksforgeeks.org/removing-stop-words-nltk-python/
-            my_stopwords = ["n't", "'m", "'re", "'d", "'ve", "'s", "say", "get", "make", "fox", "news"]
+            my_stopwords = ["n't", "'m", "'re", "'d", "'ve", "'s", "say", "get", "make", "call", "show", "tell", "fox", "news"]
             original_stop_words = set(stopwords.words("english") + my_stopwords)
             tokens = [token for token in doc if not token in original_stop_words]
             return tokens
@@ -109,6 +109,16 @@ class TextProcessor:
             return tokens
 
         self.process_corpus(_remove_non_noun_verb_func)
+
+    @print_processing_status
+    def remove_non_noun(self):
+        # Create a list of part-of-speech tags for nouns and verbs
+        noun_tags = ['NN', 'NNS', 'NNP', 'NNPS']
+        def _remove_non_noun_func(doc):
+            tokens = [token for token in doc if wordnet.synsets(token) and nltk.pos_tag([token])[0][1] in noun_tags]
+            return tokens
+
+        self.process_corpus(_remove_non_noun_func)
 
     @print_processing_status
     def tfidf(self, threshold=0.2, show_removed_wods=False, num_of_words_to_display=20):
