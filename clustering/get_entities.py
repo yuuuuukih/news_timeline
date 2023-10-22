@@ -58,7 +58,7 @@ def main():
     parser.add_argument('--tfidf', default=False, type=bool) #DEFAULT ONLY FALSE
     parser.add_argument('--bm25', default=True, type=bool)
     # Comments for conditions
-    parser.add_argument('--m', default='', type=str)
+    parser.add_argument('--m', default='items >= 2', type=str)
     # Basically fixed
     parser.add_argument('--max_output', default=40, type=int)
     parser.add_argument('--max_for_removed_words', default=20, type=int)
