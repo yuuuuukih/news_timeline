@@ -42,7 +42,7 @@ def main():
     parser = ArgumentParser()
     # Path
     parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/preprocessed/with_content/2019_2022.json')
-    parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/')
+    parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
     # Hyper parameter
     parser.add_argument('--th', default=0.4, type=float)
     parser.add_argument('--min_sup', default=0.01, type=float)
@@ -177,7 +177,7 @@ def main():
             "TF-IDF": args.tfidf,
             "Okapi BM25": args.bm25
         },
-        "hparm": {
+        "hparms": {
             "threshold": args.th,
             "min_support": args.min_sup,
             "min_confidence": args.min_conf,
@@ -188,7 +188,7 @@ def main():
             "list": removed_words
         },
         "entities": {
-            "commentso": args.m,
+            "comments": args.m,
             "The number of entities": len(filtered_output),
             "list": sorted_output
         }

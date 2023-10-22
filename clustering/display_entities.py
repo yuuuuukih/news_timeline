@@ -5,7 +5,7 @@ def display_json_as_table(json_data):
     # Display the 'entities' section as a table for each element inside 'data'
     for item in json_data['data']:
         preprocess = item['preprocess']
-        hparm = item['hparm']
+        hparms = item['hparms']
         removed = item['words removed by Okapi BM25 / TF-IDF']
         entities = item['entities']
 
@@ -13,7 +13,7 @@ def display_json_as_table(json_data):
         ======================================================
         '''
         print(f"Preprocess: {' | '.join([f'{k}: {v}' for k, v in preprocess.items()])}")
-        print(f"Hparm: {' | '.join([f'{k}: {v}' for k, v in hparm.items()])}")
+        print(f"Hparms: {' | '.join([f'{k}: {v}' for k, v in hparms.items()])}")
         print(f"Removed words ({removed['The number of words']}): {removed['list']}")
         print(f"Entities ({entities['The number of entities']})")
         '''
