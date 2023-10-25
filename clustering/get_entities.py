@@ -62,6 +62,7 @@ def main():
     # Basically fixed
     parser.add_argument('--max_output', default=40, type=int)
     parser.add_argument('--max_for_removed_words', default=20, type=int)
+    parser.add_argument('--json_file_name', default='fp_growth_entities')
     # Others
     parser.add_argument('--table_show', default=False, action='store_true')
     parser.add_argument('--no_save', default=True, action='store_false')
@@ -194,7 +195,7 @@ def main():
         }
     }
     if args.no_save:
-        save_entities(data, args.out_dir)
+        save_entities(data, args.out_dir, file_name=args.json_file_name)
 
     # Print
     print(data)
