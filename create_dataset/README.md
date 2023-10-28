@@ -111,3 +111,32 @@
     ]
 }
 ```
+
+# Files
+## add_props_to_docs.py
+- Create documents.json which has some props (e.g., entity information) added.
+
+## add_props_to_entities.py
+- Create entities.json which has documents information added.
+
+## generate_timeline.py
+- Generate timelines about ONE entities pair.
+- Input: ONE entities pair (e.g., ["russia", "ukraine"]) containing documents information.
+- Output:
+```
+[
+    {
+        "story": xxx,
+        "timeline": [
+            {
+                "ID": xxx,
+                "document": headline: short_description,
+                "headline": xxx,
+                "short_description": xxx,
+                "date": '0000-00-00',
+                "reason": xxx,
+            }, ...
+        ]
+    }, ...
+]
+```

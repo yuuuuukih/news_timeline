@@ -82,7 +82,7 @@ def main():
     parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/preprocessed/with_content/2019_2022.json')
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
     parser.add_argument('--entities_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fp_growth_entities.json')
-    parser.add_argument('json_file_name', default='documents')
+    parser.add_argument('--json_file_name', default='documents')
 
     args = parser.parse_args()
 

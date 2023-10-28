@@ -43,6 +43,7 @@ def main():
     parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fp_growth_entities.json')
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
     parser.add_argument('--docs_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/documents.json')
+    parser.add_argument('--json_file_name', default='entities')
 
     args = parser.parse_args()
 
@@ -55,11 +56,10 @@ def main():
     entities_data = add_props_to_entities(entities, docs)
 
     # save the json file.
-    file_name = 'entities'
-    data_json = os.path.join(args.out_dir, f'{file_name}.json')
+    data_json = os.path.join(args.out_dir, f'{args.json_file_name}.json')
     with open(data_json, 'w', encoding='utf-8') as json_file:
         json.dump(entities_data, json_file, indent=4, ensure_ascii=False, separators=(',', ': '))
-        print(f'Data is saved to {file_name}.json')
+        print(f'Data is saved to {args.json_file_name}.json')
 
 
 if __name__ == '__main__':
