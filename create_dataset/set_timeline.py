@@ -11,7 +11,6 @@ class TimelineSetter(GPTResponseGetter):
         self.temp = temp
         self.docs_num_in_1timeline = docs_num_in_1timeline
         self.top_tl = top_tl
-        # entity_info_left
 
     # Setting the prompts
     def get_prompts(self, entity_info):
@@ -94,83 +93,4 @@ class TimelineSetter(GPTResponseGetter):
             'timeline': timeline_list
         }
 
-        # Update entity info left
-        self.entity_info_left['docs_info'] = {
-            'IDs': list(set(entity_info['docs_info']['IDs']) - set(IDs_from_gpt)),
-            'docs': self._delete_dicts_by_id(entity_info['docs_info']['docs'], IDs_from_gpt)
-        }
-        self.entity_info_left['freq'] = len(self.entity_info_left['docs_info']['IDs'])
-
-        return timeline_info
-
-
-
-
-# class TimelineGenerator(TimelineSetter):
-#     '''
-#     docs_num_in_1timeline: The number of documents contained in ONE timeline,
-#     top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.
-#     '''
-#     def __init__(self, entity_info, model_name, temp, docs_num_in_1timeline=10, top_tl=0.5) -> None:
-#         # super
-#         super().__init__(model_name, temp, docs_num_in_1timeline, top_tl)
-#         self.entity_info_left = entity_info
-#         '''structure of entity_info
-#         {
-#             "freq": xxx,
-#             "items": ["xxx", ...],
-#             "ID": 0,
-#             "docs_info": {
-#                 "IDs": [],
-#                 "docs": [
-#                     {
-#                         "link": xxx,
-#                         "headline": xxx,
-#                         "category": xxx,
-#                         "short_description": xxx,
-#                         "authors": xxx,
-#                         "date": xxx,
-#                         "year": xxx,
-#                         "month": xxx,
-#                         "day": xxx,
-#                         "content": xxx,
-#                         "ID": xxx,
-#                         "preprocessed_tokens": [
-#                             "xxx",
-#                             ...
-#                         ],
-#                         "entities_info": {
-#                             "num": xxx,
-#                             "IDs": [],
-#                             "entities": []
-#                         }
-#                     },
-#                     ...
-#                 ]
-#             }
-#         },
-#         '''
-
-#         # parameters
-#         # self.model_name = model_name
-#         # self.temp = temp
-#         # self.docs_num_in_1timeline = docs_num_in_1timeline
-#         # timeline
-#         self.timelines = []
-#         # The number of timeline to generate
-#         # e.g., int(int(55/10)*0.5)
-#         self.timeline_num = int(int(entity_info['freq'] / self.docs_num_in_1timeline) * top_tl)
-
-#     def generate_timelines(self):
-#         for i in range(self.timeline_num):
-#             print(f'=== {i+1}/{self.timeline_num}. START ===')
-#             timeline_info = self.generate_story_and_timeline(self.entity_info_left)
-#             self.timelines.append(timeline_info)
-
-#             #  Update entity info left
-#             self.entity_info_left['docs_info'] = {
-#                 'IDs': list(set(entity_info['docs_info']['IDs']) - set(IDs_from_gpt)),
-#                 'docs': self._delete_dicts_by_id(entity_info['docs_info']['docs'], IDs_from_gpt)
-#             }
-#             self.entity_info_left['freq'] = len(self.entity_info_left['docs_info']['IDs'])
-#             print(f'=== {i+1}/{self.timeline_num}. DONE ===')
+        return timeline_info, IDs_from_gpt

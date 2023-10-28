@@ -1,6 +1,6 @@
 import os
 import json
-from get_gpt_response import get_gpt_response
+from get_gpt_basic_response import get_gpt_response
 from argparse import ArgumentParser
 
 def get_data_by_id(data_log, id):
