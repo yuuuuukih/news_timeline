@@ -1,6 +1,5 @@
 import os
 import sys
-import openai
 
 import json
 from argparse import ArgumentParser
@@ -16,64 +15,10 @@ class TimelineGenerator(TimelineSetter):
         # super
         super().__init__(model_name, temp, docs_num_in_1timeline, top_tl)
         self.entity_info_left = entity_info
-        '''structure of entity_info
-        {
-            "freq": xxx,
-            "items": ["xxx", ...],
-            "ID": 0,
-            "docs_info": {
-                "IDs": [],
-                "docs": [
-                    {
-                        "link": xxx,
-                        "headline": xxx,
-                        "category": xxx,
-                        "short_description": xxx,
-                        "authors": xxx,
-                        "date": xxx,
-                        "year": xxx,
-                        "month": xxx,
-                        "day": xxx,
-                        "content": xxx,
-                        "ID": xxx,
-                        "preprocessed_tokens": [
-                            "xxx",
-                            ...
-                        ],
-                        "entities_info": {
-                            "num": xxx,
-                            "IDs": [],
-                            "entities": []
-                        }
-                    },
-                    ...
-                ]
-            }
-        },
-        '''
-
-        # timeline
-        self.timelines = []
 
         # The number of timeline to generate
         # e.g., int(int(55/10)*0.5)
-        self.timeline_num = int(int(entity_info['freq'] / self.docs_num_in_1timeline) * top_tl)
-
-    def generate_timelines(self):
-        for i in range(self.timeline_num):
-            print(f'=== {i+1}/{self.timeline_num}. START ===')
-
-            timeline_info, IDs_from_gpt = self.generate_story_and_timeline(self.entity_info_left)
-            self.timelines.append(timeline_info)
-
-            # Update entity info left
-            self.entity_info_left['docs_info'] = {
-                'IDs': list(set(self.entity_info_left['docs_info']['IDs']) - set(IDs_from_gpt)),
-                'docs': self._delete_dicts_by_id(self.entity_info_left['docs_info']['docs'], IDs_from_gpt)
-            }
-            self.entity_info_left['freq'] = len(self.entity_info_left['docs_info']['IDs'])
-
-            print(f'=== {i+1}/{self.timeline_num}. DONE ===')
+        self.timeline_num = int(int(entity_info['freq'] / self.docs_num_in_1timeline) * self.top_tl)
 
 
 def main():
@@ -89,27 +34,20 @@ def main():
         entities_data = json.load(F)
 
     # Test ['russia', 'ukraine']
-    entity_info = entities_data['data'][0]['entities']['list'][236]
+    # entity_info = entities_data['data'][0]['entities']['list'][236]
+    # Test ['officer', 'police']
+    entity_info = entities_data['data'][0]['entities']['list'][238]
     # print(entity_info['docs_info']['IDs'])
 
     tg = TimelineGenerator(entity_info, args.model_name, args.temp, top_tl=args.top_tl)
-    tg.generate_timelines()
-    outout_data = {
-            'entity_ID': entity_info['ID'],
-            'entity_items': entity_info['items'],
-            'timeline_info': {
-                'timeline_num': tg.timeline_num,
-                'data': tg.timelines
-            }
-        }
-    print('\n')
+    outout_data = tg.generate_timelines(tg.entity_info_left, tg.timeline_num)
     # print(timelines)
 
     # save the json file.
     file_name = 'timeline_test_' + '_'.join(entity_info['items'])
     data_json = os.path.join(args.out_dir, f'{file_name}.json')
-    with open(data_json, 'w', encoding='utf-8') as json_file:
-        json.dump(outout_data, json_file, indent=4, ensure_ascii=False, separators=(',', ': '))
+    with open(data_json, 'w', encoding='utf-8') as F:
+        json.dump(outout_data, F, indent=4, ensure_ascii=False, separators=(',', ': '))
         print(f'Data is saved to {file_name}.json')
 
 

@@ -1,8 +1,13 @@
 import sys
+from typing import TypedDict
 
 from get_gpt_response import GPTResponseGetter
 
 class TimelineSetter(GPTResponseGetter):
+    '''
+    docs_num_in_1timeline: The number of documents contained in ONE timeline,
+    top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.
+    '''
     def __init__(self, model_name, temp, docs_num_in_1timeline=10, top_tl=0.5):
         # super
         # super.__init__()
@@ -11,6 +16,42 @@ class TimelineSetter(GPTResponseGetter):
         self.temp = temp
         self.docs_num_in_1timeline = docs_num_in_1timeline
         self.top_tl = top_tl
+
+        '''structure of entity_info
+        {
+            "freq": xxx,
+            "items": ["xxx", ...],
+            "ID": 0,
+            "docs_info": {
+                "IDs": [],
+                "docs": [
+                    {
+                        "link": xxx,
+                        "headline": xxx,
+                        "category": xxx,
+                        "short_description": xxx,
+                        "authors": xxx,
+                        "date": xxx,
+                        "year": xxx,
+                        "month": xxx,
+                        "day": xxx,
+                        "content": xxx,
+                        "ID": xxx,
+                        "preprocessed_tokens": [
+                            "xxx",
+                            ...
+                        ],
+                        "entities_info": {
+                            "num": xxx,
+                            "IDs": [],
+                            "entities": []
+                        }
+                    },
+                    ...
+                ]
+            }
+        },
+        '''
 
     # Setting the prompts
     def get_prompts(self, entity_info):
@@ -65,8 +106,9 @@ class TimelineSetter(GPTResponseGetter):
 
 
     def generate_story_and_timeline(self, entity_info):
-        # setter
+        # setter for GPTResponseGetter
         self.set_docs_num_in_1timeline(self.docs_num_in_1timeline)
+        self.set_entity_info(entity_info)
 
         # prompts
         system_content, user_content_1, user_content_2 = self.get_prompts(entity_info)
@@ -94,3 +136,37 @@ class TimelineSetter(GPTResponseGetter):
         }
 
         return timeline_info, IDs_from_gpt
+
+    def generate_timelines(self, entity_info_left: dict, timeline_num: int) -> list:
+        entity_ID, entity_items = entity_info_left['ID'], entity_info_left['items']
+        list_to_save_timelines = []
+        docs_IDs = []
+        for i in range(timeline_num):
+            print(f'=== {i+1}/{timeline_num}. START ===')
+
+            timeline_info, IDs_from_gpt = self.generate_story_and_timeline(entity_info_left)
+            list_to_save_timelines.append(timeline_info)
+            docs_IDs.extend(IDs_from_gpt)
+
+            # Update entity info left
+            entity_info_left['docs_info'] = {
+                'IDs': list(set(entity_info_left['docs_info']['IDs']) - set(IDs_from_gpt)),
+                'docs': self._delete_dicts_by_id(entity_info_left['docs_info']['docs'], IDs_from_gpt)
+            }
+            entity_info_left['freq'] = len(entity_info_left['docs_info']['IDs'])
+
+            print(f'=== {i+1}/{timeline_num}. DONE ===')
+
+        output_data = {
+            'entity_ID': entity_ID,
+            'entity_items': entity_items,
+            'docs_info': {
+                'IDs': docs_IDs
+            },
+            'timeline_info': {
+                'timeline_num': timeline_num,
+                'data': list_to_save_timelines
+            }
+        }
+
+        return output_data
