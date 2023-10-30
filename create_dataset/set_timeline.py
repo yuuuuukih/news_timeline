@@ -85,9 +85,18 @@ class TimelineSetter(GPTResponseGetter):
         user content 2
         '''
         user_content_2 = (
-            f"Pick {self.docs_num_in_1timeline} documents that are most relevant to the above story.\n"
-            "When responding, generate the Document ID, the headline: short_description of the document, and which sentence in the story the document is most related to.\n"
-            "Generate in the following format.\n"
+            "# INSTRUCTIONS\n"
+            f"Pick \"{self.docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
+            # "When responding, generate the Document ID, the headline: short_description of the document, and which sentence in the story the document is most related to.\n"
+            f"When responding for \"{self.docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.docs_num_in_1timeline}\" times.\n"
+
+            "# CONDITIONS\n"
+            "1. generate the Document ID, the headline: short_description of the document.\n"
+            "2. generate REASONS why you chose this document and clearly point out the STATEMENT in the story you generated which is most relevant to this document.\n"
+
+            "# OUTPUT FORMAT\n"
+            "1. ID -> xxx, document -> xxx\n"
+            "2. REASONS and STATEMENT -> xxx\n"
         )
 
         return system_content, user_content_1, user_content_2
@@ -155,7 +164,7 @@ class TimelineSetter(GPTResponseGetter):
             }
             entity_info_left['freq'] = len(entity_info_left['docs_info']['IDs'])
 
-            print(f'=== {i+1}/{timeline_num}. DONE ===')
+            print(f'=== {i+1}/{timeline_num}. DONE ===\n')
 
         output_data = {
             'entity_ID': entity_ID,

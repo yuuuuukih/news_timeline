@@ -1,11 +1,30 @@
 import os
 import sys
-
 import json
+import functools
 import datetime
+import time
 from argparse import ArgumentParser
 
 from set_timeline import TimelineSetter
+
+# decorator
+def measure_exe_time(func):
+    functools.wraps(func)
+    def _wrapper(*args, **keywords):
+        start_time = time.time()
+
+        v = func(*args, **keywords)
+
+        end_time = time.time()
+        exe_time = end_time - start_time
+        hours, remainder = divmod(exe_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        formatted_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
+        print(f"The execution time of the {func.__name__} function is {formatted_time}.")
+
+        return v
+    return _wrapper
 
 class MultipleTimelineGenerator(TimelineSetter):
     def __init__(self, entities_data, model_name, temp, docs_num_in_1timeline=10, top_tl=0.5):
@@ -20,6 +39,7 @@ class MultipleTimelineGenerator(TimelineSetter):
         output_data = self.generate_timelines(entity_info, timeline_num)
         return output_data
 
+    @measure_exe_time
     def generate_multiple_timelines(self):
         multiple_timelines = []
         for i, entity_info in enumerate(self.entity_info_list):

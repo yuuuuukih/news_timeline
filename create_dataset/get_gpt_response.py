@@ -36,7 +36,11 @@ class GPTResponseGetter:
             function_name = response_message['function_call']['name']
             function_to_call = available_functions[function_name]
             if function_name == "fortmat_timeline":
-                function_args = json.loads(response_message['function_call']['arguments'])
+                try:
+                    function_args = json.loads(response_message['function_call']['arguments'])
+                except json.decoder.JSONDecodeError as e:
+                    print(f"json.decoder.JSONDecodeError: {e}")
+                    print(response_message['function_call']['arguments'])
                 function_response = function_to_call(
                     IDs=function_args.get('IDs'),
                     # documents=function_args.get('documents'),
@@ -74,7 +78,7 @@ class GPTResponseGetter:
                     'headline': headline,
                     'short_Description': short_description,
                     'date': date,
-                    # 'content': content,
+                    'content': content,
                     'reason': reasons[i]
                 }
 
@@ -96,7 +100,8 @@ class GPTResponseGetter:
                     },
                     'reasons': {
                         'type': 'array',
-                        'items': {'type': 'string'}
+                        'items': {'type': 'string'},
+                        'description': 'A list of REASONS and STATEMENTS.'
                     }
                 },
                 'required': ['IDs', 'reasons']

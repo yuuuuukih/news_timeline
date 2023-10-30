@@ -112,6 +112,25 @@
 }
 ```
 
+- no_fake_timelines.json
+```
+{
+    'name': 'no_fake_timelines',
+    'description': 'Timeline dataset without fake news.',
+    'date': 'xxxx-xx-xx',
+    'setting': {
+        'model': args.model_name,
+        'temperature': {
+            '1st_response': args.temp,
+            '2nd_response': 0,
+        },
+        'docs_num_in_1timeline': args.docs,
+        'top_tl': args.top_tl
+    },
+    'data': multiple_timelines
+}
+```
+
 # Files
 ## add_props_to_docs.py
 - Create documents.json which has some props (e.g., entity information) added.
