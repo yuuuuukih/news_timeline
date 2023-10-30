@@ -8,14 +8,18 @@ class TimelineSetter(GPTResponseGetter):
     docs_num_in_1timeline: The number of documents contained in ONE timeline,
     top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.
     '''
-    def __init__(self, model_name, temp, docs_num_in_1timeline=10, top_tl=0.5):
+    def __init__(self, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5):
         # super
         # super.__init__()
         # parameters
         self.model_name = model_name
         self.temp = temp
-        self.docs_num_in_1timeline = docs_num_in_1timeline
+        self.min_docs_num_in_1timeline = min_docs_num_in_1timeline
+        self.max_docs_num_in_1timeline = max_docs_num_in_1timeline
         self.top_tl = top_tl
+        # preprocess of docs_num_in_1timeline
+        self.list_docs_num_in_1timeline = list(range(self.min_docs_num_in_1timeline, self.max_docs_num_in_1timeline + 1))
+        self.str_docs_num_in_1timeline = ' or '.join([str(n) for n in self.list_docs_num_in_1timeline])
 
         '''structure of entity_info
         {
@@ -86,17 +90,19 @@ class TimelineSetter(GPTResponseGetter):
         '''
         user_content_2 = (
             "# INSTRUCTIONS\n"
-            f"Pick \"{self.docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
+            f"Pick \"{self.str_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
             # "When responding, generate the Document ID, the headline: short_description of the document, and which sentence in the story the document is most related to.\n"
-            f"When responding for \"{self.docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.docs_num_in_1timeline}\" times.\n"
+            f"When responding for \"{self.str_docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.str_docs_num_in_1timeline}\" times.\n"
 
             "# CONDITIONS\n"
-            "1. generate the Document ID, the headline: short_description of the document.\n"
-            "2. generate REASONS why you chose this document and clearly point out the STATEMENT in the story you generated which is most relevant to this document.\n"
+            f"1. First of all, please generate how many documents you have picked out of {self.str_docs_num_in_1timeline}.\n"
+            "2. generate the Document ID, the headline: short_description of the document.\n"
+            "3. generate REASONS why you chose this document and clearly point out the STATEMENT in the story you generated which is most relevant to this document.\n"
 
             "# OUTPUT FORMAT\n"
-            "1. ID -> xxx, document -> xxx\n"
-            "2. REASONS and STATEMENT -> xxx\n"
+            "1. Number of documents -> \n"
+            "2. ID -> , document -> \n"
+            "3. REASONS and STATEMENT -> \n"
         )
 
         return system_content, user_content_1, user_content_2
@@ -109,14 +115,17 @@ class TimelineSetter(GPTResponseGetter):
         return filtered_list
 
     def _check_timeline(self, entity_info, IDs_from_gpt):
+        # Check number of docs
+        if not len(IDs_from_gpt) in self.list_docs_num_in_1timeline:
+            sys.exit('The number of documents ERROR')
         # Check document ID
         if not set(IDs_from_gpt) <= set(entity_info['docs_info']['IDs']):
-            sys.exit('ID ERROER!')
+            sys.exit('ID ERROR!')
 
 
     def generate_story_and_timeline(self, entity_info):
         # setter for GPTResponseGetter
-        self.set_docs_num_in_1timeline(self.docs_num_in_1timeline)
+        # self.set_docs_num_in_1timeline(self.docs_num_in_1timeline)
         self.set_entity_info(entity_info)
 
         # prompts
@@ -140,13 +149,14 @@ class TimelineSetter(GPTResponseGetter):
 
         # Update timelines
         timeline_info = {
+            'docs_num': len(timeline_list),
             'story': story,
             'timeline': timeline_list
         }
 
         return timeline_info, IDs_from_gpt
 
-    def generate_timelines(self, entity_info_left: dict, timeline_num: int) -> list:
+    def generate_timelines(self, entity_info_left: dict, timeline_num: int) -> dict:
         entity_ID, entity_items = entity_info_left['ID'], entity_info_left['items']
         list_to_save_timelines = []
         docs_IDs = []
@@ -164,7 +174,7 @@ class TimelineSetter(GPTResponseGetter):
             }
             entity_info_left['freq'] = len(entity_info_left['docs_info']['IDs'])
 
-            print(f'=== {i+1}/{timeline_num}. DONE ===\n')
+            print(f'=== {i+1}/{timeline_num}. DONE ===')
 
         output_data = {
             'entity_ID': entity_ID,

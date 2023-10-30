@@ -41,12 +41,13 @@ class GPTResponseGetter:
                 except json.decoder.JSONDecodeError as e:
                     print(f"json.decoder.JSONDecodeError: {e}")
                     print(response_message['function_call']['arguments'])
-                function_response = function_to_call(
+                function_response, IDs_from_gpt = function_to_call(
+                    number=function_args.get('number'),
                     IDs=function_args.get('IDs'),
                     # documents=function_args.get('documents'),
                     reasons=function_args.get('reasons'),
                 )
-                return function_response
+                return function_response, IDs_from_gpt
 
     '''
     === For function calling ===
@@ -59,7 +60,8 @@ class GPTResponseGetter:
     def set_entity_info(self, value):
         self.__entity_info = value
 
-    def fortmat_timeline(self, IDs: list[int], reasons: list[str]):
+    def fortmat_timeline(self, number, IDs: list[int], reasons: list[str]):
+        self.set_docs_num_in_1timeline(number)
         if not (len(IDs) == len(reasons) == self.__docs_num_in_1timeline):
             print(f"IDs: {IDs}")
             print(f"reasons: {reasons}")
@@ -78,7 +80,7 @@ class GPTResponseGetter:
                     'headline': headline,
                     'short_Description': short_description,
                     'date': date,
-                    'content': content,
+                    # 'content': content,
                     'reason': reasons[i]
                 }
 
@@ -93,6 +95,10 @@ class GPTResponseGetter:
                 # https://json-schema.org/understanding-json-schema/reference/array
                 'type': 'object',
                 'properties': {
+                    'number': {
+                        'type': 'integer',
+                        'description': 'The number of documents.'
+                    },
                     'IDs': {
                         'type': 'array',
                         'items': {'type': 'integer'},
@@ -104,7 +110,7 @@ class GPTResponseGetter:
                         'description': 'A list of REASONS and STATEMENTS.'
                     }
                 },
-                'required': ['IDs', 'reasons']
+                'required': ['number', 'IDs', 'reasons']
             },
         }
         return function_info

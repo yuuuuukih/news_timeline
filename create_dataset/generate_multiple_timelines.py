@@ -27,26 +27,63 @@ def measure_exe_time(func):
     return _wrapper
 
 class MultipleTimelineGenerator(TimelineSetter):
-    def __init__(self, entities_data, model_name, temp, docs_num_in_1timeline=10, top_tl=0.5):
-        super().__init__(model_name, temp, docs_num_in_1timeline, top_tl)
+    def __init__(self, entities_data, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5):
+        super().__init__(model_name, temp, min_docs_num_in_1timeline, max_docs_num_in_1timeline, top_tl)
 
-        self.entity_info_list = entities_data['data'][0]['entities']['list']
-
-    def generate_timelines_for_certain_entity(self, entity_info):
-        # Define the number of timelines to generate for this entity
-        timeline_num = int(int(entity_info['freq'] / self.docs_num_in_1timeline) * self.top_tl)
-        # Generate timelines
-        output_data = self.generate_timelines(entity_info, timeline_num)
-        return output_data
+        self.entity_info_list = entities_data['data'][0]['entities']['list'][238:240]
 
     @measure_exe_time
     def generate_multiple_timelines(self):
-        multiple_timelines = []
         for i, entity_info in enumerate(self.entity_info_list):
+            print('\n')
             print(f"{i+1}/{len(self.entity_info_list)}. ID: {entity_info['ID']}, entity: {entity_info['items']}")
-            output_data = self.generate_timelines_for_certain_entity(entity_info)
-            multiple_timelines.append(output_data)
-        return multiple_timelines
+            # Define the number of timelines to generate for this entity
+            timeline_num = int(int(entity_info['freq'] / self.max_docs_num_in_1timeline) * self.top_tl)
+            # Generate timelines
+            output_data = self.generate_timelines(entity_info, timeline_num)
+            # Save
+            self.save_timelines(output_data)
+
+    # For save timelines
+    def save_timelines(self, timeline_data, name_to_save='Data'):
+        # Open the file
+        file_path = os.path.join(self.__out_dir, f"{self.__json_file_name}.json")
+        try:
+            with open(file_path, 'r') as F:
+                no_fake_timelines = json.load(F)
+        except FileNotFoundError:
+            no_fake_timelines = {
+                'name': self.__json_file_name,
+                'description': 'Timeline dataset without fake news.',
+                'date': f'{datetime.datetime.today()}',
+                'entities_num': 0,
+                'setting': {
+                    'model': self.model_name,
+                    'temperature': {
+                        '1st_response': self.temp,
+                        '2nd_response': 0,
+                    },
+                    'docs_num_in_1timeline': {
+                        'min': self.min_docs_num_in_1timeline,
+                        'max': self.max_docs_num_in_1timeline
+                    },
+                    'top_tl': self.top_tl
+                },
+                'data': []
+            }
+        # Update
+        no_fake_timelines['data'].append(timeline_data)
+        no_fake_timelines['entities_num'] = len(no_fake_timelines['data'])
+        # save the json file.
+        with open(file_path, 'w', encoding='utf-8') as F:
+            json.dump(no_fake_timelines, F, indent=4, ensure_ascii=False, separators=(',', ': '))
+            print(f'{name_to_save} is saved to {self.__json_file_name}.json')
+
+    def set_file_to_save(self, json_file_name, out_dir):
+        self.__json_file_name = json_file_name
+        self.__out_dir = out_dir
+
+
 
 
 def main():
@@ -55,7 +92,8 @@ def main():
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
     parser.add_argument('--model_name', default='gpt-4')
     parser.add_argument('--temp', default=0.8, type=float, help='Temperature for 1st response of GPT.')
-    parser.add_argument('--docs', default=10, type=int, help='docs_num_in_1timeline')
+    parser.add_argument('--min_docs', default=6, type=int, help='min_docs_num_in_1timeline')
+    parser.add_argument('--max_docs', default=10, type=int, help='max_docs_num_in_1timeline')
     parser.add_argument('--top_tl', default=0.5, type=float, help='top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.')
     parser.add_argument('--json_file_name', default='no_fake_timelines')
     args = parser.parse_args()
@@ -63,30 +101,10 @@ def main():
     with open(args.file_path, 'r') as F:
         entities_data = json.load(F)
 
-    mtg = MultipleTimelineGenerator(entities_data, args.model_name, args.temp, args.docs, args.top_tl)
-    multiple_timelines = mtg.generate_multiple_timelines()
+    mtg = MultipleTimelineGenerator(entities_data, args.model_name, args.temp, args.min_docs, args.max_docs, args.top_tl)
+    mtg.set_file_to_save(json_file_name=args.json_file_name, out_dir=args.out_dir)
+    mtg.generate_multiple_timelines()
 
-    no_fake_timelines = {
-        'name': args.json_file_name,
-        'description': 'Timeline dataset without fake news.',
-        'date': f'{datetime.datetime.today()}',
-        'setting': {
-            'model': args.model_name,
-            'temperature': {
-                '1st_response': args.temp,
-                '2nd_response': 0,
-            },
-            'docs_num_in_1timeline': args.docs,
-            'top_tl': args.top_tl
-        },
-        'data': multiple_timelines
-    }
-
-    # save the json file.
-    data_json = os.path.join(args.out_dir, f'{args.json_file_name}.json')
-    with open(data_json, 'w', encoding='utf-8') as F:
-        json.dump(no_fake_timelines, F, indent=4, ensure_ascii=False, separators=(',', ': '))
-        print(f'Data is saved to {args.json_file_name}.json')
 
 
 if __name__ == '__main__':
