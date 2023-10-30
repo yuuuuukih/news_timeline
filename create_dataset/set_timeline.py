@@ -20,6 +20,8 @@ class TimelineSetter(GPTResponseGetter):
         # preprocess of docs_num_in_1timeline
         self.list_docs_num_in_1timeline = list(range(self.min_docs_num_in_1timeline, self.max_docs_num_in_1timeline + 1))
         self.str_docs_num_in_1timeline = ' or '.join([str(n) for n in self.list_docs_num_in_1timeline])
+        # For analytics
+        self.initialize_list_for_analytics()
 
         '''structure of entity_info
         {
@@ -114,14 +116,26 @@ class TimelineSetter(GPTResponseGetter):
         filtered_list = [item for i, item in enumerate(dictionary_list) if i not in indexes_to_remove]
         return filtered_list
 
-    def _check_timeline(self, entity_info, IDs_from_gpt):
+    def _check_timeline(self, entity_info, IDs_from_gpt) -> bool:
         # Check number of docs
-        if not len(IDs_from_gpt) in self.list_docs_num_in_1timeline:
-            sys.exit('The number of documents ERROR')
+        cond1 = len(IDs_from_gpt) in self.list_docs_num_in_1timeline
         # Check document ID
-        if not set(IDs_from_gpt) <= set(entity_info['docs_info']['IDs']):
-            sys.exit('ID ERROR!')
+        cond2 = set(IDs_from_gpt) <= set(entity_info['docs_info']['IDs'])
+        return cond1 and cond2
 
+    def initialize_list_for_analytics(self):
+        self.no_timeline_entity_id = []
+        self.analytics_docs_num = []
+        self.analytics_reexe_num = []
+
+    def get_max_reexe_num(self):
+        return self.__max_reexe_num
+
+    def set_max_reexe_num(self, value: int):
+        self.__max_reexe_num = value
+
+    def set_reexe_num(self, value: int):
+        self.__reexe_num = value
 
     def generate_story_and_timeline(self, entity_info):
         # setter for GPTResponseGetter
@@ -131,24 +145,42 @@ class TimelineSetter(GPTResponseGetter):
         # prompts
         system_content, user_content_1, user_content_2 = self.get_prompts(entity_info)
 
-        # messages
-        messages=[
-            {'role': 'system', 'content': system_content},
-            {'role': 'user', 'content': user_content_1}
-        ]
-        messages = self.get_gpt_response(messages, model_name=self.model_name, temp=self.temp)
-        story = messages[-1]['content']
-        print('Got 1st GPT response.')
+        # Loop processing
+        for i in range(self.__max_reexe_num+1):
+            self.set_reexe_num(i)
 
-        messages.append({'role': 'user', 'content': user_content_2})
-        timeline_list, IDs_from_gpt = self.get_gpt_response(messages, model_name=self.model_name, temp=0)
-        print('Got 2nd GPT response.')
+            # messages
+            messages=[
+                {'role': 'system', 'content': system_content},
+                {'role': 'user', 'content': user_content_1}
+            ]
 
-        # Check
-        self._check_timeline(entity_info, IDs_from_gpt)
+            messages = self.get_gpt_response(messages, model_name=self.model_name, temp=self.temp)
+            story = messages[-1]['content']
+            print('Got 1st GPT response.')
+
+            messages.append({'role': 'user', 'content': user_content_2})
+            timeline_list, IDs_from_gpt = self.get_gpt_response(messages, model_name=self.model_name, temp=0)
+
+            #Check
+            if self._check_timeline(entity_info, IDs_from_gpt):
+                # If all conditions are met
+                print('Got 2nd GPT response.')
+                break # Exit the loop as conditions are met
+            else:
+                print('Failed to get 2nd GPT response.')
+                messages = []
+                if i != self.__max_reexe_num:
+                    print(f"Re-execution for the {i + 1}-th time")
+        else:
+            print('NO TIMELINE INFO')
+            self.no_timeline_entity_id.append(entity_info['ID'])
+            story = ''
+            timeline = []
 
         # Update timelines
         timeline_info = {
+            'reexe_num': self.__reexe_num,
             'docs_num': len(timeline_list),
             'story': story,
             'timeline': timeline_list
@@ -160,12 +192,18 @@ class TimelineSetter(GPTResponseGetter):
         entity_ID, entity_items = entity_info_left['ID'], entity_info_left['items']
         list_to_save_timelines = []
         docs_IDs = []
+
+        # Initialize for analytics list
+        self.initialize_list_for_analytics()
         for i in range(timeline_num):
             print(f'=== {i+1}/{timeline_num}. START ===')
 
             timeline_info, IDs_from_gpt = self.generate_story_and_timeline(entity_info_left)
+
             list_to_save_timelines.append(timeline_info)
             docs_IDs.extend(IDs_from_gpt)
+            self.analytics_docs_num.append(timeline_info['docs_num'])
+            self.analytics_reexe_num.append(timeline_info['reexe_num'])
 
             # Update entity info left
             entity_info_left['docs_info'] = {

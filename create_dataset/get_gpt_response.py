@@ -41,6 +41,7 @@ class GPTResponseGetter:
                 except json.decoder.JSONDecodeError as e:
                     print(f"json.decoder.JSONDecodeError: {e}")
                     print(response_message['function_call']['arguments'])
+
                 function_response, IDs_from_gpt = function_to_call(
                     number=function_args.get('number'),
                     IDs=function_args.get('IDs'),
@@ -76,11 +77,12 @@ class GPTResponseGetter:
                 headline, short_description, date, content = doc_info_dict['headline'], doc_info_dict['short_description'], doc_info_dict['date'], doc_info_dict['content']
                 doc = {
                     'ID': IDs[i],
+                    'is_fake': False,
                     'document': f"{headline}: {short_description}",
                     'headline': headline,
                     'short_Description': short_description,
                     'date': date,
-                    # 'content': content,
+                    'content': content,
                     'reason': reasons[i]
                 }
 
@@ -114,59 +116,3 @@ class GPTResponseGetter:
             },
         }
         return function_info
-
-    # def fortmat_timeline(self, IDs: list[int], documents: list[str], reasons: list[str]):
-    #     if not (len(IDs) == len(documents) == len(reasons) == self.__docs_num_in_1timeline):
-    #         print(f"IDs: {IDs}")
-    #         print(f"documents: {documents}")
-    #         print(f"reasons: {reasons}")
-    #         sys.exit('Input ERROR!')
-    #         return None
-    #     else:
-    #         timeline = []
-    #         for i in range(self.__docs_num_in_1timeline):
-    #             doc_ID = IDs[i]
-    #             # get_doc_by_id = lambda id: next((f"{item['headline']}: {item['short_description']}" for item in self.__entity_info['docs_info']['docs'] if item['ID'] == id), None)
-    #             get_doc_info_by_id = lambda: next((item for item in self.__entity_info['docs_info']['docs'] if item['ID'] == doc_ID), None)
-    #             doc_info_dict = get_doc_info_by_id()
-    #             headline, short_description, date, content = doc_info_dict['headline'], doc_info_dict['short_description'], doc_info_dict['date'], doc_info_dict['content']
-    #             # doc = {'ID': IDs[i], 'document': get_doc_info_by_id(), 'reason': reasons[i]}
-    #             doc = {
-    #                 'ID': IDs[i],
-    #                 'document': f"{headline}: {short_description}",
-    #                 'headline': headline,
-    #                 'short_Description': short_description,
-    #                 'date': date,
-    #                 # 'content': content,
-    #                 'reason': reasons[i]
-    #             }
-
-    #             timeline.append(doc)
-    #         return timeline, IDs
-
-    # def _format_timeline_info(self):
-    #     function_info = {
-    #         'name': 'fortmat_timeline',
-    #         'description': 'Convert the generated timeline information into a dictionary type.',
-    #         'parameters': {
-    #             # https://json-schema.org/understanding-json-schema/reference/array
-    #             'type': 'object',
-    #             'properties': {
-    #                 'IDs': {
-    #                     'type': 'array',
-    #                     'items': {'type': 'integer'},
-    #                     'description': 'A list of Document ID.'
-    #                 },
-    #                 'documents': {
-    #                     'type': 'array',
-    #                     'items': {'type': 'string'}
-    #                 },
-    #                 'reasons': {
-    #                     'type': 'array',
-    #                     'items': {'type': 'string'}
-    #                 }
-    #             },
-    #             'required': ['IDs', 'documents', 'reasons']
-    #         },
-    #     }
-    #     return function_info
