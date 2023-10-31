@@ -1,9 +1,9 @@
 import os
-import sys
 import json
 import functools
 import datetime
 import time
+import openai
 from collections import Counter
 from argparse import ArgumentParser
 
@@ -40,10 +40,35 @@ class MultipleTimelineGenerator(TimelineSetter):
             print(f"{i+1}/{len(self.entity_info_list)}. ID: {entity_info['ID']}, entity: {entity_info['items']}")
             # Define the number of timelines to generate for this entity
             timeline_num = int(int(entity_info['freq'] / self.max_docs_num_in_1timeline) * self.top_tl)
-            # Generate timelines
-            output_data = self.generate_timelines(entity_info, timeline_num)
-            # Save
-            self.save_timelines(output_data)
+
+            # Initialize an error count
+            error_count = 0
+            # Loop with a maximum of 10 attempts
+            max_error_count = 10
+            while error_count < max_error_count:
+                try:
+                    # Generate timelines
+                    output_data = self.generate_timelines(entity_info, timeline_num)
+                    # Save
+                    self.save_timelines(output_data)
+                except openai.error.Timeout as e:
+                    print("Timeout error occurred. Re-running the function.")
+                    print(f"openai.error.Timeout: {e}")
+                    error_count += 1
+                except ValueError as e:
+                    print("ValueError occurred. Re-running the function.")
+                    print(f"ValueError: {e}")
+                    error_count += 1
+                except openai.error.InvalidRequestError as e:
+                    print("InvalidRequestError occurred. Continuing the program.")
+                    print(f"openai.error.InvalidRequestError: {e}")
+                    break  # Exit the loop
+                else:
+                    break  # Exit the loop if no error occurred
+                time.sleep(1)  # If an error occurred, wait for 1 second before retrying
+            if error_count == max_error_count:
+                print("Exceeded the maximum retry limit (10 times). Exiting the program.")
+
 
     # For save timelines
     def save_timelines(self, timeline_data, name_to_save='Data'):
@@ -115,8 +140,8 @@ def main():
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
     parser.add_argument('--model_name', default='gpt-4')
     parser.add_argument('--temp', default=0.8, type=float, help='Temperature for 1st response of GPT.')
-    parser.add_argument('--min_docs', default=6, type=int, help='min_docs_num_in_1timeline')
-    parser.add_argument('--max_docs', default=10, type=int, help='max_docs_num_in_1timeline')
+    parser.add_argument('--min_docs', default=4, type=int, help='min_docs_num_in_1timeline')
+    parser.add_argument('--max_docs', default=8, type=int, help='max_docs_num_in_1timeline')
     parser.add_argument('--top_tl', default=0.5, type=float, help='top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.')
     parser.add_argument('--json_file_name', default='no_fake_timelines')
     parser.add_argument('--max_reexe_num', default=1, type=int)
@@ -136,7 +161,6 @@ def main():
 - [:]の中を確認
 - get_gpt_response.pyのcontentを確認
 '''
-
 
 if __name__ == '__main__':
     main()

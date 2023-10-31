@@ -1,5 +1,4 @@
 import os
-import sys
 import openai
 import json
 
@@ -16,6 +15,7 @@ class GPTResponseGetter:
             model=model_name,
             temperature=temp,
             messages=messages,
+            request_timeout=60,
             functions=[
                 self._format_timeline_info()
             ],
@@ -45,7 +45,6 @@ class GPTResponseGetter:
                 function_response, IDs_from_gpt = function_to_call(
                     number=function_args.get('number'),
                     IDs=function_args.get('IDs'),
-                    # documents=function_args.get('documents'),
                     reasons=function_args.get('reasons'),
                 )
                 return function_response, IDs_from_gpt
@@ -64,10 +63,11 @@ class GPTResponseGetter:
     def fortmat_timeline(self, number, IDs: list[int], reasons: list[str]):
         self.set_docs_num_in_1timeline(number)
         if not (len(IDs) == len(reasons) == self.__docs_num_in_1timeline):
+            print(f"number: {number}")
             print(f"IDs: {IDs}")
             print(f"reasons: {reasons}")
-            sys.exit('Input ERROR!')
-            return None
+            print('Input ERROR!')
+            return [], IDs
         else:
             timeline = []
             for i in range(self.__docs_num_in_1timeline):

@@ -1,6 +1,3 @@
-import sys
-from typing import TypedDict
-
 from get_gpt_response import GPTResponseGetter
 
 class TimelineSetter(GPTResponseGetter):
@@ -92,9 +89,11 @@ class TimelineSetter(GPTResponseGetter):
         '''
         user_content_2 = (
             "# INSTRUCTIONS\n"
-            f"Pick \"{self.str_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
+            f"Select \" at least {self.min_docs_num_in_1timeline}\", and \"at most {self.max_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
+            # f"Pick \"{self.str_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
             # "When responding, generate the Document ID, the headline: short_description of the document, and which sentence in the story the document is most related to.\n"
-            f"When responding for \"{self.str_docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.str_docs_num_in_1timeline}\" times.\n"
+            f"Please follow these two conditions and generate by using the following OUTPUT FORMAT.\n"
+            # f"When responding for \"{self.str_docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.str_docs_num_in_1timeline}\" times.\n"
 
             "# CONDITIONS\n"
             f"1. First of all, please generate how many documents you have picked out of {self.str_docs_num_in_1timeline}.\n"
@@ -163,7 +162,7 @@ class TimelineSetter(GPTResponseGetter):
             timeline_list, IDs_from_gpt = self.get_gpt_response(messages, model_name=self.model_name, temp=0)
 
             #Check
-            if self._check_timeline(entity_info, IDs_from_gpt):
+            if self._check_timeline(entity_info, IDs_from_gpt) and len(timeline_list) == len(IDs_from_gpt):
                 # If all conditions are met
                 print('Got 2nd GPT response.')
                 break # Exit the loop as conditions are met
@@ -174,9 +173,10 @@ class TimelineSetter(GPTResponseGetter):
                     print(f"Re-execution for the {i + 1}-th time")
         else:
             print('NO TIMELINE INFO')
+            self.set_reexe_num(-1)
             self.no_timeline_entity_id.append(entity_info['ID'])
             story = ''
-            timeline = []
+            timeline_list = []
 
         # Update timelines
         timeline_info = {
@@ -200,9 +200,10 @@ class TimelineSetter(GPTResponseGetter):
 
             timeline_info, IDs_from_gpt = self.generate_story_and_timeline(entity_info_left)
 
-            list_to_save_timelines.append(timeline_info)
-            docs_IDs.extend(IDs_from_gpt)
-            self.analytics_docs_num.append(timeline_info['docs_num'])
+            if len(IDs_from_gpt) > 0:
+                list_to_save_timelines.append(timeline_info)
+                docs_IDs.extend(IDs_from_gpt)
+                self.analytics_docs_num.append(timeline_info['docs_num'])
             self.analytics_reexe_num.append(timeline_info['reexe_num'])
 
             # Update entity info left
@@ -221,7 +222,7 @@ class TimelineSetter(GPTResponseGetter):
                 'IDs': docs_IDs
             },
             'timeline_info': {
-                'timeline_num': timeline_num,
+                'timeline_num': len(list_to_save_timelines),
                 'data': list_to_save_timelines
             }
         }
