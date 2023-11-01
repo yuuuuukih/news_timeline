@@ -8,7 +8,7 @@
     "description": "This dataset is /datasets/news_category_dataset/preprocessed/with_content/2019_2022.json with the analytics and docs of ID, preprocessed_tokens, entities_info properties added."
     "analytics": {
         "category": {
-            "U.S. NEWS: 1208,
+            "U.S. NEWS": 1208,
             ...
         },
         "entities num": {
@@ -18,16 +18,16 @@
     },
     "data": [
         {
-            "link": xxx,
-            "headline": xxx,
-            "category": xxx,
-            "short_description": xxx,
-            "authors": xxx,
-            "date": xxx,
-            "year": xxx,
-            "month": xxx,
-            "day": xxx,
-            "content": xxx,
+            "link": "xxx",
+            "headline": "xxx",
+            "category": "xxx",
+            "short_description": "xxx",
+            "authors": "xxx",
+            "date": "xxx",
+            "year": "xxx",
+            "month": "xxx",
+            "day": "xxx",
+            "content": "xxx",
             "ID": xxx,
             "preprocessed_tokens": [
                 "xxx",
@@ -79,16 +79,16 @@
                             "IDs": [],
                             "docs": [
                                 {
-                                    "link": xxx,
-                                    "headline": xxx,
-                                    "category": xxx,
-                                    "short_description": xxx,
-                                    "authors": xxx,
-                                    "date": xxx,
-                                    "year": xxx,
-                                    "month": xxx,
-                                    "day": xxx,
-                                    "content": xxx,
+                                    "link": "xxx",
+                                    "headline": "xxx",
+                                    "category": "xxx",
+                                    "short_description": "xxx",
+                                    "authors": "xxx",
+                                    "date": "xxx",
+                                    "year": "xxx",
+                                    "month": "xxx",
+                                    "day": "xxx",
+                                    "content": "xxx",
                                     "ID": xxx,
                                     "preprocessed_tokens": [
                                         "xxx",
@@ -117,17 +117,66 @@
 {
     'name': 'no_fake_timelines',
     'description': 'Timeline dataset without fake news.',
-    'date': 'xxxx-xx-xx',
+    'date': 'xxxx-xx-xx xx:xx:xx.xxxxxx',
     'setting': {
-        'model': args.model_name,
+        'model': 'gpt-4',
         'temperature': {
-            '1st_response': args.temp,
+            '1st_response': 0.8,
             '2nd_response': 0,
         },
-        'docs_num_in_1timeline': args.docs,
-        'top_tl': args.top_tl
+        'docs_num_in_1timeline': {
+            'min': 4,
+            'max': 8
+        },
+        'top_tl': args.top_tl,
+        'max_reexe_num': 1
     },
-    'data': multiple_timelines
+    analytics: {
+        'docs_num_in_1timeline': {
+            '0': x,
+            '4': x,
+            ...
+        },
+        're_execution_num': {
+            '-1': x,
+            '0': x,
+            ...
+        },
+        'no_timeline_entity_id': [
+            x, ...
+        ]
+    },
+    'data': [
+        {
+            'entity_ID': xxx,
+            'entity_items': ['xxx', 'xxx', ...],
+            'docs_info': {
+                'IDs': [xxx, xxx, ...]
+            },
+            'timeline_info': {
+                'timeline_num': x,
+                'data': [
+                    {
+                        'reexe_num': x,
+                        'docs_num': x,
+                        'story': 'xxxxxxx',
+                        'timeline': {
+                            {
+                                'ID': xxx,
+                                'is_fake': false,
+                                'document': 'xxx: xxx',
+                                'headline': 'xxx',
+                                'short_description': 'xxx',
+                                'date': 'xxxx-xx-xx',
+                                'content': 'xxxxxx',
+                                'reason': 'xxxxxx'
+                            }, ...
+                        }
+                    }, ...
+                ]
+            }
+        }, ...
+    ]
 }
 ```
 
@@ -149,11 +198,12 @@
         "timeline": [
             {
                 "ID": xxx,
-                "document": headline: short_description,
-                "headline": xxx,
-                "short_description": xxx,
+                "document": "headline: short_description",
+                "headline": "xxx",
+                "short_description": "xxx",
                 "date": '0000-00-00',
-                "reason": xxx,
+                "content": "xxx"
+                "reason": "xxx",
             }, ...
         ]
     }, ...
