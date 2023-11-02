@@ -64,6 +64,59 @@ class TimelinesAnalyzer:
         print(f"s: {s} | t: {t}")
         print(f"Removed: {len(nodes_to_remove)} | left: {len(left_partition)} | right: {len(right_partition)} | intersection: {len(intersection)}")
 
+    @classmethod
+    def community(cls, data, n=0):
+        # Create a graph and load the data
+        custom_graph = cls(data)
+
+        communities = list(nx.community.girvan_newman(custom_graph.G))
+        communities = custom_graph.merge_single_element_sets(communities[n])
+
+        node_colors = custom_graph.create_community_node_colors(custom_graph.G, communities)
+        modularity = round(nx.community.modularity(custom_graph.G, communities), 6)
+
+        plt.figure(figsize=(10,10))
+        pos = nx.spring_layout(custom_graph.G, k=0.2) # k=0.17, 0.2
+        labels = nx.get_edge_attributes(custom_graph.G, 'weight')
+        title = f"Community Visualization of {len(communities)} communities with modularity of {modularity}"
+        plt.title(title, fontsize=16)
+        nx.draw(
+            custom_graph.G,
+            pos=pos,
+            node_size=700,
+            node_color=node_colors,
+            with_labels=True,
+            # font_size=20,
+            font_color="black",
+        )
+        nx.draw_networkx_edge_labels(custom_graph.G, pos, edge_labels=labels)
+        plt.legend()
+        plt.savefig(f'community_{n}.jpg')
+
+        for i in range(len(communities)):
+            print(f"{i+1}. {len(communities[i])}")
+
+    # function to create node colour list
+    def create_community_node_colors(self, graph, communities):
+        number_of_colors = len(communities[0])
+        # colors = ["#D4FCB1", "#CDC5FC", "#FFC2C4", "#F2D140", "#BCC6C8"][:number_of_colors]
+        colors = ["#D4FCB1", "#CDC5FC", "#FFC2C4", "#F2D140", "#BCC6C8", "#FFCC99", "#FFCCCC", "#CCCCFF", "#CCFFCC", "#99FFCC"][:number_of_colors]
+        node_colors = []
+        for node in graph:
+            current_community_index = 0
+            for community in communities:
+                if node in community:
+                    node_colors.append(colors[current_community_index])
+                    break
+                current_community_index += 1
+        return node_colors
+
+    def merge_single_element_sets(self, data):
+        single_elements = {el for subset in data for el in subset if len(subset) == 1}
+        other_elements = [subset for subset in data if len(subset) > 1]
+        return tuple(other_elements + [single_elements])
+
+
 
 def main():
     parser = ArgumentParser()
@@ -77,7 +130,8 @@ def main():
 
     # ta = TimelinesAnalyzer(timelines['data'])
     # ta.show()
-    TimelinesAnalyzer.minimum_cut(timelines['data'])
+    # TimelinesAnalyzer.minimum_cut(timelines['data'])
+    TimelinesAnalyzer.community(timelines['data'], n=0)
 
 if __name__ == '__main__':
     main()
