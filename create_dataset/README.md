@@ -160,7 +160,7 @@
                         'reexe_num': x,
                         'docs_num': x,
                         'story': 'xxxxxxx',
-                        'timeline': {
+                        'timeline': [
                             {
                                 'ID': xxx,
                                 'is_fake': false,
@@ -171,7 +171,7 @@
                                 'content': 'xxxxxx',
                                 'reason': 'xxxxxx'
                             }, ...
-                        }
+                        ]
                     }, ...
                 ]
             }
