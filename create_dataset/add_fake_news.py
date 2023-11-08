@@ -2,10 +2,43 @@ import os
 import sys
 import json
 import openai
+import time
+import functools
 
 from argparse import ArgumentParser
 
 from get_gpt_response import GPTResponseGetter
+
+sys.path.append('../')
+from type.no_fake_timelines import NoFakeTimeline, TimelineData
+
+# Define the retry decorator
+def retry_decorator(max_error_count=10, retry_delay=1):
+    def decorator_retry(func):
+        functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            error_count = 0
+            while error_count < max_error_count:
+                try:
+                    return func(*args, **kwargs)
+                except openai.error.Timeout as e:
+                    print(f"Timeout error occurred: {e}. Re-running the function.")
+                    error_count += 1
+                except ValueError as e:
+                    print(f"ValueError occurred: {e}. Re-running the function.")
+                    error_count += 1
+                except AttributeError as e: # For when other functions are called in function calling.
+                    print(f"AttributeError occurred: {e}. Re-running the function.")
+                    error_count += 1
+                except openai.error.InvalidRequestError as e:
+                    print(f"InvalidRequestError occurred: {e}. Continuing with next iteration.")
+                    break
+                time.sleep(retry_delay)  # If an error occurred, wait before retrying
+            if error_count == max_error_count:
+                print("Exceeded the maximum number of retries. Exiting the function.")
+                return None
+        return wrapper
+    return decorator_retry
 
 class FakeNewsSetter:
     def __init__(self):
@@ -38,33 +71,34 @@ class FakeNewsSetter:
         else:
             return setting.rstrip('0123456789'), setting.lstrip('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') # ex: ('rep', '0')
 
-
 class FakeNewsGenerater(GPTResponseGetter):
-    def __init__(self, no_fake_timelines, setting) -> None:
+    def __init__(self, no_fake_timelines: NoFakeTimeline, setting: str) -> None:
         self.no_fake_timelines = no_fake_timelines
-        self.data = no_fake_timelines['data']
+        self.data = no_fake_timelines['data'][236:237]
+        self.m = len(self.data)
+        self.setting = setting
         self.setting_str, self.setting_num = FakeNewsSetter.decode(setting)
 
-    def get_prompts(self, entity, timeline_data):
+    def get_prompts(self, entity_items: list[str], timeline_data: TimelineData):
         docs_num, timeline = timeline_data['docs_num'], timeline_data['timeline']
         timeline = sorted(timeline, key=lambda x: x['date'])
 
         '''
         system content
         '''
-        system_content = "You are a logical writer."
+        system_content = "You are a logical writer. Execute the function calling's format_fake_news function."
 
         '''
         user content
         '''
         user_content = (
             "# INSTRUCTIONS\n"
-            f"Below are {docs_num} documents about {entity}. Each document contains time information (YYYY-MM-DD), forming a timeline.\n"
+            f"Below are {docs_num} documents about {entity_items}. Each document contains time information (YYYY-MM-DD), forming a timeline.\n"
             "Generate ONE fake news based on the following constraints and input documents.\n"
         )
 
         user_content += "# INPUT DOCUMENTS\n"
-        for i, doc in enumerate(timeline_data):
+        for i, doc in enumerate(timeline):
             user_content += (
                 f"document ID. {doc['ID']}\n"
                 f"headline: {doc['headline']}\n"
@@ -108,7 +142,95 @@ class FakeNewsGenerater(GPTResponseGetter):
 
         return system_content, user_content
 
-    
+    def set_gpt_for_fake_news(self, model_name, temp):
+        self.__model_name = model_name
+        self.__temp = temp
+
+    @retry_decorator(max_error_count=10, retry_delay=1)
+    def get_fake_news(self, entity_items: list[str], timeline_data: TimelineData):
+        system_content, user_content = self.get_prompts(entity_items, timeline_data)
+        messages = [
+            {'role': 'system', 'content': system_content},
+            {'role': 'user', 'content': user_content}
+        ]
+        # Generate fake news
+        fake_news, remarks = self.get_gpt_response(messages, self.__model_name, self.__temp)
+
+        return fake_news, remarks
+
+    def generate_fake_news_timelines(self):
+        for i, entity_info in enumerate(self.data):
+            entity_id = entity_info['entity_ID']
+            entity_items = entity_info['entity_items']
+            timelines = entity_info['timeline_info']['data'][:1]
+            timeline_num = len(timelines)
+
+            print(f"=== {i+1}/{self.m}. entity: {entity_items} START ===")
+            for i, timeline_data in enumerate(timelines):
+                new_timeline = []
+
+                for doc in timeline_data['timeline']:
+                    new_doc = {
+                        'ID': doc['ID'],
+                        'is_fake': doc['is_fake'],
+                        'headline': doc['headline'],
+                        'short_description': doc['short_description'],
+                        'date': doc['date'],
+                        # 'content': doc['content']
+                    }
+                    new_timeline.append(new_doc)
+
+                if self.setting_str == 'rep':
+                    for i in range(10):
+                        fake_news, remarks = self.get_fake_news(entity_items, timeline_data)
+                        if remarks != None:
+                            break
+                    print(remarks)
+                    replaced_document_id = remarks['document_id']
+                    new_timeline = list(filter(lambda doc: doc['ID'] != replaced_document_id, new_timeline))
+
+                elif self.setting_str == 'ins':
+                    for i in range(10):
+                        fake_news, remarks = self.get_fake_news(entity_items, timeline_data)
+                        if remarks == None:
+                            break
+
+
+                new_timeline.append(fake_news)
+                new_timeline = sorted(new_timeline, key=lambda doc: doc['date'])
+
+                new_timeline_info = {
+                    'entity_id': entity_id,
+                    'entity_items': entity_items,
+                    'setting': self.setting,
+                    'timeline': new_timeline
+                }
+
+                # ======For Test=====
+                try:
+                    with open('/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fake_news_test.json', 'r', encoding='utf-8') as F:
+                        data = json.load(F)
+                except FileNotFoundError:
+                    data = {
+                        'name': 'Timeline Dataset with fake news.',
+                        'data': []
+                    }
+                
+                data['data'].append(new_timeline_info)
+
+                with open('/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fake_news_test.json', 'w', encoding='utf-8') as F:
+                    json.dump(data, F, indent=4, ensure_ascii=False, separators=(',', ': '))
+                    print(f'fake news test is saved to fake_news_test.json')
+                # ===================
+
+                print(f"=== {i+1}/{timeline_num}. fake news DONE ===")
+
+    def set_file_to_save(self, json_file_name, out_dir):
+        self.__json_file_name = json_file_name
+        self.__out_dir = out_dir
+
+    def save_fake_news_timelines(self, timeline):
+        pass
 
 
 
@@ -116,13 +238,25 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/no_fake_timelines.json')
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
+    parser.add_argument('--model_name', default='gpt-4')
+    parser.add_argument('--temp', default=0.8, type=float)
+    parser.add_argument('--json_file_name', default='fake_news_russia_ukraine')
     parser.add_argument('--setting', default='none', choices=FakeNewsSetter.get_choices())
     args = parser.parse_args()
 
     with open(args.file_path, 'r') as F:
-        no_fake_timelines = json.load(F)
+        no_fake_timelines: NoFakeTimeline = json.load(F)
 
     fng = FakeNewsGenerater(no_fake_timelines, args.setting)
+    fng.set_gpt_for_fake_news(args.model_name, args.temp)
+    fng.generate_fake_news_timelines()
+
+
+'''
+テストの時は
+- [:]の中を確認
+- get_gpt_response.pyのcontentを確認
+'''
 
 if __name__ =='__main__':
     main()

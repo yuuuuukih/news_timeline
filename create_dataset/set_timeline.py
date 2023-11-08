@@ -61,7 +61,7 @@ class TimelineSetter(GPTResponseGetter):
         '''
         system content
         '''
-        system_content = 'You are a professional story writer.'
+        system_content = "You are a professional story writer. Execute the function calling's format_timeline function."
 
         '''
         user content 1
