@@ -4,6 +4,7 @@ import json
 import openai
 import time
 import functools
+import re
 
 from argparse import ArgumentParser
 
@@ -112,6 +113,7 @@ class FakeNewsGenerater(GPTResponseGetter):
             "# CONSTRAINTS\n"
             "- It needs to contain headline, short_description, date (YYYY-MM-DD), and content properties.\n"
             "- In a step-by-step manner, first generate the content and date of fake news, and then generate the headline and short description."
+            "Additionally, explain why you generate such fake news and which parts of the fake news meet the following constraints"
             f"- The date of the fake news must be within a period that is later than the oldest date among the {docs_num} documents and earlier than the newest date.\n"
         )
         if self.setting_str == 'rep':
@@ -166,7 +168,8 @@ class FakeNewsGenerater(GPTResponseGetter):
             timeline_num = len(timelines)
 
             print(f"=== {i+1}/{self.m}. entity: {entity_items} START ===")
-            for i, timeline_data in enumerate(timelines):
+            for j, timeline_data in enumerate(timelines):
+                print(f"=== {j+1}/{timeline_num}. fake news generating... ===")
                 new_timeline = []
 
                 for doc in timeline_data['timeline']:
@@ -181,19 +184,23 @@ class FakeNewsGenerater(GPTResponseGetter):
                     new_timeline.append(new_doc)
 
                 if self.setting_str == 'rep':
-                    for i in range(10):
+                    for cnt in range(10):
                         fake_news, remarks = self.get_fake_news(entity_items, timeline_data)
-                        if remarks != None:
+                        if remarks != None and self.is_valid_date_format(fake_news['date']):
                             break
+                    else:
+                        sys.exit('fake news generation error!')
                     print(remarks)
                     replaced_document_id = remarks['document_id']
                     new_timeline = list(filter(lambda doc: doc['ID'] != replaced_document_id, new_timeline))
 
                 elif self.setting_str == 'ins':
-                    for i in range(10):
+                    for cnt in range(10):
                         fake_news, remarks = self.get_fake_news(entity_items, timeline_data)
                         if remarks == None:
                             break
+                    else:
+                        sys.exit('fake news generation error!')
 
 
                 new_timeline.append(fake_news)
@@ -207,8 +214,9 @@ class FakeNewsGenerater(GPTResponseGetter):
                 }
 
                 # ======For Test=====
+                filename_test = 'fake_news_test2'
                 try:
-                    with open('/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fake_news_test.json', 'r', encoding='utf-8') as F:
+                    with open(f'/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/{filename_test}.json', 'r', encoding='utf-8') as F:
                         data = json.load(F)
                 except FileNotFoundError:
                     data = {
@@ -218,12 +226,17 @@ class FakeNewsGenerater(GPTResponseGetter):
                 
                 data['data'].append(new_timeline_info)
 
-                with open('/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/fake_news_test.json', 'w', encoding='utf-8') as F:
+                with open(f'/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/{filename_test}.json', 'w', encoding='utf-8') as F:
                     json.dump(data, F, indent=4, ensure_ascii=False, separators=(',', ': '))
-                    print(f'fake news test is saved to fake_news_test.json')
+                    print(f'{filename_test} is saved to {filename_test}.json')
                 # ===================
 
-                print(f"=== {i+1}/{timeline_num}. fake news DONE ===")
+                print(f"=== {j+1}/{timeline_num}. fake news DONE ===")
+
+    def is_valid_date_format(self, date_string):
+        pattern = r'^\d{4}-\d{2}-\d{2}$'
+        match = re.match(pattern, date_string)
+        return bool(match)
 
     def set_file_to_save(self, json_file_name, out_dir):
         self.__json_file_name = json_file_name

@@ -200,7 +200,7 @@ class TimelineSetter(GPTResponseGetter):
 
             timeline_info, IDs_from_gpt = self.generate_story_and_timeline(entity_info_left)
 
-            if len(IDs_from_gpt) > 0:
+            if len(IDs_from_gpt) > 0 and timeline_info['reexe_num'] != -1:
                 list_to_save_timelines.append(timeline_info)
                 docs_IDs.extend(IDs_from_gpt)
                 self.analytics_docs_num.append(timeline_info['docs_num'])
