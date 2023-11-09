@@ -1,4 +1,4 @@
-import os
+import sys
 import json
 from tqdm import tqdm
 import random
@@ -7,20 +7,21 @@ from argparse import ArgumentParser
 import networkx as nx
 import matplotlib.pyplot as plt
 
+sys.path.append('../')
+from type.no_fake_timelines import NoFakeTimeline, EntityData
 
 class TimelinesAnalyzer:
-    def __init__(self, timelines_data) -> None:
+    def __init__(self, timelines_data: list[EntityData]) -> None:
         self.G = nx.Graph()
         self.timelines_data = timelines_data
         self.N = len(self.timelines_data)
 
         self.load(self.timelines_data)
 
-    def get_node_name(self, entity):
+    def get_node_name(self, entity: EntityData) -> str:
         return f"{entity['entity_ID']}"
-        # return f"{entity['entity_ID']}: {entity['entity_items']}"
 
-    def load(self, timelines):
+    def load(self, timelines: list[EntityData]):
         # Add nodes
         for entity in timelines:
             self.G.add_node(self.get_node_name(entity))
@@ -65,7 +66,7 @@ class TimelinesAnalyzer:
         print(f"Removed: {len(nodes_to_remove)} | left: {len(left_partition)} | right: {len(right_partition)} | intersection: {len(intersection)}")
 
     @classmethod
-    def community(cls, data, n=0):
+    def community(cls, data: list[EntityData], n=0):
         # Create a graph and load the data
         custom_graph = cls(data)
 
@@ -93,8 +94,7 @@ class TimelinesAnalyzer:
         plt.legend()
         plt.savefig(f'community_{n}.jpg')
 
-        for i in range(len(communities)):
-            print(f"{i+1}. {len(communities[i])}")
+        return communities
 
     # function to create node colour list
     def create_community_node_colors(self, graph, communities):
@@ -122,16 +122,37 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/no_fake_timelines.json')
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
-    parser.add_argument('--json_file_name', default='no_fake_timelines')
+    parser.add_argument('--n', default=0, type=int)
     args = parser.parse_args()
 
     with open(args.file_path, 'r') as F:
-        timelines = json.load(F)
+        timelines: NoFakeTimeline = json.load(F)
 
     # ta = TimelinesAnalyzer(timelines['data'])
     # ta.show()
     # TimelinesAnalyzer.minimum_cut(timelines['data'])
-    TimelinesAnalyzer.community(timelines['data'], n=0)
+    communities = TimelinesAnalyzer.community(timelines['data'], n=args.n)
+    # print(communities)
+    # for i in range(len(communities)):
+    #         print(f"{i+1}. {len(communities[i])}")
+    com_info = []
+    for com in communities:
+        com = list(com)
+        ent_num = len(com)
+        total_num = 0
+        for id in com:
+            for entity_data in timelines['data']:
+                entity_id = entity_data['entity_ID']
+                if int(id) == entity_id:
+                    num_tl = entity_data['timeline_info']['timeline_num']
+                    break
+            total_num += num_tl
+        com_info.append({'num': ent_num, 'timeline_num': total_num})
+
+    print(com_info)
+
+
+
 
 if __name__ == '__main__':
     main()
