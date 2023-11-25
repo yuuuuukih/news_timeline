@@ -2,11 +2,13 @@ import functools
 import openai
 import time
 import sys
+from typing import Tuple
 
 from get_gpt_response import GPTResponseGetter
 
 sys.path.append('../')
 from type.entities import EntityData
+from type.no_fake_timelines import TimelineData, EntityTimelineData, Doc
 
 # Define the retry decorator
 def retry_decorator(max_error_count=10, retry_delay=1): # Loop with a maximum of 10 attempts
@@ -156,12 +158,14 @@ class TimelineSetter(GPTResponseGetter):
         filtered_list = [item for i, item in enumerate(dictionary_list) if i not in indexes_to_remove]
         return filtered_list
 
-    def _check_timeline(self, entity_info: EntityData, IDs_from_gpt: list[int]) -> bool:
+    def _check_conditions(self, entity_info: EntityData, IDs_from_gpt: list[int], timeline_list: list[Doc]) -> bool:
         # Check number of docs
         cond1 = len(IDs_from_gpt) in self.list_docs_num_in_1timeline
         # Check document ID
         cond2 = set(IDs_from_gpt) <= set(entity_info['docs_info']['IDs'])
-        return cond1 and cond2
+        # Check the length between IDs_from_gpt and timeline_list
+        cond3 = len(timeline_list) == len(IDs_from_gpt)
+        return cond1 and cond2 and cond3
 
     def initialize_list_for_analytics(self):
         self.no_timeline_entity_id = []
@@ -178,7 +182,7 @@ class TimelineSetter(GPTResponseGetter):
         self.__reexe_num = value
 
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_story_and_timeline(self, entity_info: EntityData):
+    def generate_story_and_timeline(self, entity_info: EntityData) -> Tuple[TimelineData, list[int]]:
         # setter for GPTResponseGetter
         self.set_entity_info(entity_info)
 
@@ -203,7 +207,7 @@ class TimelineSetter(GPTResponseGetter):
             timeline_list, IDs_from_gpt = self.get_gpt_response_timeline(messages, model_name=self.model_name, temp=0)
 
             #Check
-            if self._check_timeline(entity_info, IDs_from_gpt) and len(timeline_list) == len(IDs_from_gpt):
+            if self._check_conditions(entity_info, IDs_from_gpt, timeline_list):
                 # If all conditions are met
                 print('Got 2nd GPT response.')
                 break # Exit the loop as conditions are met
@@ -220,7 +224,7 @@ class TimelineSetter(GPTResponseGetter):
             timeline_list = []
 
         # Update timelines
-        timeline_info = {
+        timeline_info: TimelineData = {
             'reexe_num': self.__reexe_num,
             'docs_num': len(timeline_list),
             'story': story,
@@ -229,10 +233,10 @@ class TimelineSetter(GPTResponseGetter):
 
         return timeline_info, IDs_from_gpt
 
-    def generate_timelines(self, entity_info_left: EntityData, timeline_num: int) -> dict:
+    def generate_timelines(self, entity_info_left: EntityData, timeline_num: int) -> EntityTimelineData:
         entity_ID, entity_items = entity_info_left['ID'], entity_info_left['items']
-        list_to_save_timelines = []
-        docs_IDs = []
+        list_to_save_timelines: list[TimelineData] = []
+        docs_IDs: list[int] = []
 
         # Initialize for analytics list
         self.initialize_list_for_analytics()
@@ -256,7 +260,7 @@ class TimelineSetter(GPTResponseGetter):
 
             print(f'=== {i+1}/{timeline_num}. DONE ===')
 
-        output_data = {
+        output_data: EntityTimelineData = {
             'entity_ID': entity_ID,
             'entity_items': entity_items,
             'docs_info': {

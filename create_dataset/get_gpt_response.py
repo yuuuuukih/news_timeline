@@ -1,6 +1,12 @@
 import os
+import sys
 import openai
 import json
+
+from typing import Tuple
+
+sys.path.append('../')
+from type.no_fake_timelines import Doc
 
 class GPTResponseGetter:
     '''
@@ -141,7 +147,7 @@ class GPTResponseGetter:
     def set_entity_info(self, value):
         self.__entity_info = value
 
-    def fortmat_timeline(self, number, IDs: list[int], reasons: list[str]):
+    def fortmat_timeline(self, number, IDs: list[int], reasons: list[str]) -> Tuple[list[Doc], list[int]]:
         self.set_docs_num_in_1timeline(number)
         if not (len(IDs) == len(reasons) == self.__docs_num_in_1timeline):
             print(f"number: {number}")
@@ -150,13 +156,13 @@ class GPTResponseGetter:
             print('Input ERROR! (format_timeline in get_gpt_response.py)')
             return [], IDs
         else:
-            timeline = []
+            timeline: list[Doc] = []
             for i in range(self.__docs_num_in_1timeline):
                 doc_ID = IDs[i]
                 get_doc_info_by_id = lambda: next((item for item in self.__entity_info['docs_info']['docs'] if item['ID'] == doc_ID), None)
                 doc_info_dict = get_doc_info_by_id()
                 headline, short_description, date, content = doc_info_dict['headline'], doc_info_dict['short_description'], doc_info_dict['date'], doc_info_dict['content']
-                doc = {
+                doc: Doc = {
                     'ID': IDs[i],
                     'is_fake': False,
                     'document': f"{headline}: {short_description}",

@@ -11,6 +11,7 @@ from set_timeline import TimelineSetter
 
 sys.path.append('../')
 from type.entities import Entities
+from type.no_fake_timelines import EntityTimelineData
 
 # decorator
 def measure_exe_time(func):
@@ -46,13 +47,13 @@ class MultipleTimelineGenerator(TimelineSetter):
             timeline_num = int(int(entity_info['freq'] / self.max_docs_num_in_1timeline) * self.top_tl)
 
             # Generate timelines
-            output_data = self.generate_timelines(entity_info, timeline_num)
+            output_data: EntityTimelineData = self.generate_timelines(entity_info, timeline_num)
             # Save
             self.save_timelines(output_data)
 
 
     # For save timelines
-    def save_timelines(self, timeline_data, name_to_save='Data'):
+    def save_timelines(self, timeline_data: EntityTimelineData, name_to_save='Data'):
         # Open the file
         file_path = os.path.join(self.__out_dir, f"{self.__json_file_name}.json")
         try:
