@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import functools
 import datetime
@@ -31,7 +32,8 @@ class MultipleTimelineGenerator(TimelineSetter):
     def __init__(self, entities_data, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
         super().__init__(model_name, temp, min_docs_num_in_1timeline, max_docs_num_in_1timeline, top_tl)
 
-        self.entity_info_list = entities_data['data'][0]['entities']['list'][start_entity_id:]
+        # self.entity_info_list = entities_data['data'][0]['entities']['list'][start_entity_id:]
+        self.entity_info_list = entities_data['data'][0]['entities']['list'][236:236+1]
 
     @measure_exe_time
     def generate_multiple_timelines(self):
@@ -41,33 +43,10 @@ class MultipleTimelineGenerator(TimelineSetter):
             # Define the number of timelines to generate for this entity
             timeline_num = int(int(entity_info['freq'] / self.max_docs_num_in_1timeline) * self.top_tl)
 
-            # Initialize an error count
-            error_count = 0
-            # Loop with a maximum of 10 attempts
-            max_error_count = 10
-            while error_count < max_error_count:
-                try:
-                    # Generate timelines
-                    output_data = self.generate_timelines(entity_info, timeline_num)
-                    # Save
-                    self.save_timelines(output_data)
-                except openai.error.Timeout as e:
-                    print("Timeout error occurred. Re-running the function.")
-                    print(f"openai.error.Timeout: {e}")
-                    error_count += 1
-                except ValueError as e:
-                    print("ValueError occurred. Re-running the function.")
-                    print(f"ValueError: {e}")
-                    error_count += 1
-                except openai.error.InvalidRequestError as e:
-                    print("InvalidRequestError occurred. Continuing the program.")
-                    print(f"openai.error.InvalidRequestError: {e}")
-                    break  # Exit the loop
-                else:
-                    break  # Exit the loop if no error occurred
-                time.sleep(1)  # If an error occurred, wait for 1 second before retrying
-            if error_count == max_error_count:
-                print("Exceeded the maximum retry limit (10 times). Exiting the program.")
+            # Generate timelines
+            output_data = self.generate_timelines(entity_info, timeline_num)
+            # Save
+            self.save_timelines(output_data)
 
 
     # For save timelines

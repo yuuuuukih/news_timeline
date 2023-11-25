@@ -1,4 +1,41 @@
+import functools
+import openai
+import time
+import sys
+
 from get_gpt_response import GPTResponseGetter
+
+# Define the retry decorator
+def retry_decorator(max_error_count=10, retry_delay=1): # Loop with a maximum of 10 attempts
+    def decorator_retry(func):
+        functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Initialize an error count
+            error_count = 0
+            while error_count < max_error_count:
+                try:
+                    v = func(*args, **kwargs)
+                    return v
+                except openai.error.Timeout as e:
+                    print(f"Timeout error occurred: {e}. Re-running the function.")
+                    error_count += 1
+                except ValueError as e:
+                    print(f"ValueError occurred: {e}. Re-running the function.")
+                    error_count += 1
+                except TypeError as e: # For when other functions are called in function calling.
+                    print("TypeError occurred. Re-running the function.")
+                    print(f"TypeError: {e}")
+                    error_count += 1
+                except openai.error.InvalidRequestError as e:
+                    print("InvalidRequestError occurred. Continuing the program.")
+                    print(f"openai.error.InvalidRequestError: {e}")
+                    break  # Exit the loop
+                time.sleep(retry_delay)  # If an error occurred, wait before retrying
+            if error_count == max_error_count:
+                sys.exit("Exceeded the maximum number of retries. Exiting the function.")
+                return None
+        return wrapper
+    return decorator_retry
 
 class TimelineSetter(GPTResponseGetter):
     '''
@@ -92,6 +129,7 @@ class TimelineSetter(GPTResponseGetter):
             f"Select \" at least {self.min_docs_num_in_1timeline}\", and \"at most {self.max_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
             # f"Pick \"{self.str_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
             # "When responding, generate the Document ID, the headline: short_description of the document, and which sentence in the story the document is most related to.\n"
+            "The headline and short_description you choose should cover most of the story.\n"
             f"Please follow these two conditions and generate by using the following OUTPUT FORMAT.\n"
             # f"When responding for \"{self.str_docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.str_docs_num_in_1timeline}\" times.\n"
 
@@ -136,6 +174,7 @@ class TimelineSetter(GPTResponseGetter):
     def set_reexe_num(self, value: int):
         self.__reexe_num = value
 
+    @retry_decorator(max_error_count=10, retry_delay=1)
     def generate_story_and_timeline(self, entity_info):
         # setter for GPTResponseGetter
         # self.set_docs_num_in_1timeline(self.docs_num_in_1timeline)
@@ -154,12 +193,12 @@ class TimelineSetter(GPTResponseGetter):
                 {'role': 'user', 'content': user_content_1}
             ]
 
-            messages = self.get_gpt_response(messages, model_name=self.model_name, temp=self.temp)
+            messages = self.get_gpt_response_classic(messages, model_name=self.model_name, temp=self.temp)
             story = messages[-1]['content']
             print('Got 1st GPT response.')
 
             messages.append({'role': 'user', 'content': user_content_2})
-            timeline_list, IDs_from_gpt = self.get_gpt_response(messages, model_name=self.model_name, temp=0)
+            timeline_list, IDs_from_gpt = self.get_gpt_response_timeline(messages, model_name=self.model_name, temp=0)
 
             #Check
             if self._check_timeline(entity_info, IDs_from_gpt) and len(timeline_list) == len(IDs_from_gpt):
