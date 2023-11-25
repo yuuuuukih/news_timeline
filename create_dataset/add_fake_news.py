@@ -157,7 +157,7 @@ class FakeNewsGenerater(GPTResponseGetter):
             {'role': 'user', 'content': user_content}
         ]
         # Generate fake news
-        fake_news, remarks = self.get_gpt_response(messages, self.__model_name, self.__temp)
+        fake_news, remarks = self.get_gpt_response_fake_news(messages, self.__model_name, self.__temp)
 
         return fake_news, remarks
 
