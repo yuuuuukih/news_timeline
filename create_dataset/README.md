@@ -209,3 +209,60 @@
     }, ...
 ]
 ```
+
+
+# Prompts
+## story
+```
+"# INSTRUCTIONS\n"
+"Generate the best story based on the following constraints and input statements.\n"
+
+"# CONSTRAINTS\n"
+f"- Generate stories based on the {number of documents} documents (consisting of headline and short description) in the INPUT STATEMENTS below.\n"
+f"- The story must be about {keyword group}.\n"
+"- It must be less than 100 words.\n"
+
+"# INPUT STATEMENTS\n"
+"Document ID -> {doc_ID}, documents -> {headline}: {short_description}\n"
+
+"# OUTPUT STORY\n"
+```
+
+## pick n documents
+```
+"# INSTRUCTIONS\n"
+f"Select \" at least {n_min}\", and \"at most {n_max}\" documents that are most relevant to the above story.\n"
+"Please follow these two conditions and generate by using the following OUTPUT FORMAT.\n"
+
+"# CONDITIONS\n"
+f"1. First of all, please generate how many documents you have picked out of {4,5,6,7,8}.\n"
+"2. generate the Document ID, the headline: short_description of the document.\n"
+"3. generate REASONS why you chose this document and clearly point out the STATEMENT in the story you generated which is most relevant to this document.\n"
+
+"# OUTPUT FORMAT\n"
+"1. Number of documents -> \n"
+"2. ID -> , document -> \n"
+"3. REASONS and STATEMENT -> \n"
+```
+
+## fake news
+```
+"# INSTRUCTIONS\n"
+f"Below are {n} documents about {keyword group}. Each document contains time information (YYYY-MM-DD), forming a timeline.\n"
+"Generate ONE fake news based on the following constraints and input documents.\n"
+
+"# INPUT DOCUMENTS\n"
+f"document ID. {doc['ID']}\n"
+f"headline: {doc['headline']}\n"
+f"short_description: {doc['short_description']}\n"
+f"date: {doc['date']}\n"
+f"content: {doc['content']}\n"
+
+"# CONSTRAINTS\n"
+"- It needs to contain headline, short_description, date (YYYY-MM-DD), and content properties.\n"
+"- In a step-by-step manner, first generate the content and date of fake news, and then generate the headline and short description."
+"Additionally, explain why you generate such fake news and which parts of the fake news meet the following constraints"
+f"- The date of the fake news must be within a period that is later than the oldest date among the {n} documents and earlier than the newest date.\n"
+
+...
+```

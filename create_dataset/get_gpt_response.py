@@ -17,7 +17,7 @@ class GPTResponseGetter:
             messages=messages,
             request_timeout=60,
             functions=[
-                self._format_timeline_info(),
+                # self._format_timeline_info(),
                 self._format_fake_news_info(),
             ],
             function_call='auto'
@@ -28,6 +28,7 @@ class GPTResponseGetter:
         messages.append(assistant_message)
 
         if not response_message.get('function_call'):
+            print('No function calling (get_gpt_response.py).')
             return messages
         else:
             # Note: the JSON response may not always be valid; be sure to handle errors

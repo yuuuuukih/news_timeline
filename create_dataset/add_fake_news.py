@@ -21,7 +21,8 @@ def retry_decorator(max_error_count=10, retry_delay=1):
             error_count = 0
             while error_count < max_error_count:
                 try:
-                    return func(*args, **kwargs)
+                    v = func(*args, **kwargs)
+                    return v
                 except openai.error.Timeout as e:
                     print(f"Timeout error occurred: {e}. Re-running the function.")
                     error_count += 1
@@ -36,7 +37,7 @@ def retry_decorator(max_error_count=10, retry_delay=1):
                     break
                 time.sleep(retry_delay)  # If an error occurred, wait before retrying
             if error_count == max_error_count:
-                print("Exceeded the maximum number of retries. Exiting the function.")
+                sys.exit("Exceeded the maximum number of retries. Exiting the function.")
                 return None
         return wrapper
     return decorator_retry
@@ -87,7 +88,7 @@ class FakeNewsGenerater(GPTResponseGetter):
         '''
         system content
         '''
-        system_content = "You are a logical writer. Execute the function calling's format_fake_news function."
+        system_content = "You are a logical writer. You must execute the function calling's format_fake_news function to format your outputs."
 
         '''
         user content
@@ -214,7 +215,7 @@ class FakeNewsGenerater(GPTResponseGetter):
                 }
 
                 # ======For Test=====
-                filename_test = 'fake_news_test2'
+                filename_test = 'fake_news_test_for_slides'
                 try:
                     with open(f'/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/{filename_test}.json', 'r', encoding='utf-8') as F:
                         data = json.load(F)
