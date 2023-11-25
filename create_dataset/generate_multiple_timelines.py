@@ -4,11 +4,13 @@ import json
 import functools
 import datetime
 import time
-import openai
 from collections import Counter
 from argparse import ArgumentParser
 
 from set_timeline import TimelineSetter
+
+sys.path.append('../')
+from type.entities import Entities
 
 # decorator
 def measure_exe_time(func):
@@ -29,7 +31,7 @@ def measure_exe_time(func):
     return _wrapper
 
 class MultipleTimelineGenerator(TimelineSetter):
-    def __init__(self, entities_data, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
+    def __init__(self, entities_data: Entities, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
         super().__init__(model_name, temp, min_docs_num_in_1timeline, max_docs_num_in_1timeline, top_tl)
 
         # self.entity_info_list = entities_data['data'][0]['entities']['list'][start_entity_id:]
@@ -128,7 +130,7 @@ def main():
     args = parser.parse_args()
 
     with open(args.file_path, 'r') as F:
-        entities_data = json.load(F)
+        entities_data: Entities = json.load(F)
 
     mtg = MultipleTimelineGenerator(entities_data, args.model_name, args.temp, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
     mtg.set_max_reexe_num(args.max_reexe_num)

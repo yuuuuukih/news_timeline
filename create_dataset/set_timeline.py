@@ -5,6 +5,9 @@ import sys
 
 from get_gpt_response import GPTResponseGetter
 
+sys.path.append('../')
+from type.entities import EntityData
+
 # Define the retry decorator
 def retry_decorator(max_error_count=10, retry_delay=1): # Loop with a maximum of 10 attempts
     def decorator_retry(func):
@@ -94,7 +97,7 @@ class TimelineSetter(GPTResponseGetter):
         '''
 
     # Setting the prompts
-    def get_prompts(self, entity_info):
+    def get_prompts(self, entity_info: EntityData):
         '''
         system content
         '''
@@ -146,14 +149,14 @@ class TimelineSetter(GPTResponseGetter):
 
         return system_content, user_content_1, user_content_2
 
-    def _delete_dicts_by_id(self, dictionary_list, id_list):
+    def _delete_dicts_by_id(self, dictionary_list: list[dict], id_list: list[int]) -> list[dict]:
         # Find the indexes of dictionaries with IDs to be removed
         indexes_to_remove = [i for i, item in enumerate(dictionary_list) if item['ID'] in id_list]
         # Create a new list without the dictionaries at the identified indexes
         filtered_list = [item for i, item in enumerate(dictionary_list) if i not in indexes_to_remove]
         return filtered_list
 
-    def _check_timeline(self, entity_info, IDs_from_gpt) -> bool:
+    def _check_timeline(self, entity_info: EntityData, IDs_from_gpt: list[int]) -> bool:
         # Check number of docs
         cond1 = len(IDs_from_gpt) in self.list_docs_num_in_1timeline
         # Check document ID
@@ -165,19 +168,18 @@ class TimelineSetter(GPTResponseGetter):
         self.analytics_docs_num = []
         self.analytics_reexe_num = []
 
-    def get_max_reexe_num(self):
+    def get_max_reexe_num(self) -> int:
         return self.__max_reexe_num
 
-    def set_max_reexe_num(self, value: int):
+    def set_max_reexe_num(self, value: int) -> None:
         self.__max_reexe_num = value
 
-    def set_reexe_num(self, value: int):
+    def set_reexe_num(self, value: int) -> None:
         self.__reexe_num = value
 
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_story_and_timeline(self, entity_info):
+    def generate_story_and_timeline(self, entity_info: EntityData):
         # setter for GPTResponseGetter
-        # self.set_docs_num_in_1timeline(self.docs_num_in_1timeline)
         self.set_entity_info(entity_info)
 
         # prompts
@@ -227,7 +229,7 @@ class TimelineSetter(GPTResponseGetter):
 
         return timeline_info, IDs_from_gpt
 
-    def generate_timelines(self, entity_info_left: dict, timeline_num: int) -> dict:
+    def generate_timelines(self, entity_info_left: EntityData, timeline_num: int) -> dict:
         entity_ID, entity_items = entity_info_left['ID'], entity_info_left['items']
         list_to_save_timelines = []
         docs_IDs = []
