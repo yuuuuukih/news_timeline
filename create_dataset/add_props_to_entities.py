@@ -6,12 +6,12 @@ from argparse import ArgumentParser
 
 import sys
 
-def count_elements(list):
-    count_dict = {}
-    for item in list:
-        if str(item) not in count_dict.keys():
-            count_dict[str(item)] = list.count(item)
-    return count_dict
+# def count_elements(list):
+#     count_dict = {}
+#     for item in list:
+#         if str(item) not in count_dict.keys():
+#             count_dict[str(item)] = list.count(item)
+#     return count_dict
 
 def add_props_to_entities(entities_data, docs_data):
     output_data = copy.deepcopy(entities_data)
@@ -26,8 +26,14 @@ def add_props_to_entities(entities_data, docs_data):
 
         for doc in docs_data['data']:
             if my_entity_ID in doc['entities_info']['IDs']:
-                prop['IDs'].append(doc['ID'])
-                prop['docs'].append(doc)
+                # prop['IDs'].append(doc['ID'])
+                # prop['docs'].append(doc)
+                """
+                今回の場合は、documents.json時に、documentのIDをdateが新しい順（降順）となってしまっているため、
+                entities.jsonにする際に、entity毎のdocumentを昇順に並べ替える。
+                """
+                prop['IDs'].insert(0, doc['ID'])
+                prop['docs'].insert(0, doc)
 
         # validation
         if entities['freq'] != len(prop['IDs']):
