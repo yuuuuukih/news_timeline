@@ -11,7 +11,7 @@ from set_timeline import TimelineSetter
 
 sys.path.append('../')
 from type.entities import Entities
-from type.no_fake_timelines import EntityTimelineData
+from type.no_fake_timelines import EntityTimelineData, NoFakeTimeline
 
 # decorator
 def measure_exe_time(func):
@@ -58,7 +58,7 @@ class MultipleTimelineGenerator(TimelineSetter):
         file_path = os.path.join(self.__out_dir, f"{self.__json_file_name}.json")
         try:
             with open(file_path, 'r') as F:
-                no_fake_timelines = json.load(F)
+                no_fake_timelines:NoFakeTimeline = json.load(F)
         except FileNotFoundError:
             no_fake_timelines = {
                 'name': self.__json_file_name,

@@ -6,6 +6,7 @@ import json
 from typing import Tuple
 
 sys.path.append('../')
+from type.entities import EntityData
 from type.no_fake_timelines import Doc
 
 class GPTResponseGetter:
@@ -140,11 +141,11 @@ class GPTResponseGetter:
                 )
                 return function_response, IDs_from_gpt
 
-    def set_docs_num_in_1timeline(self, value):
+    def set_docs_num_in_1timeline(self, value: int):
         # self.__dict__['__docs_num_in_1timeline'] = value
         self.__docs_num_in_1timeline = value
 
-    def set_entity_info(self, value):
+    def set_entity_info(self, value: EntityData):
         self.__entity_info = value
 
     def fortmat_timeline(self, number, IDs: list[int], reasons: list[str]) -> Tuple[list[Doc], list[int]]:

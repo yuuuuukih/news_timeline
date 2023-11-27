@@ -53,6 +53,7 @@ class NoFakeTimeline(TypedDict):
     name: str
     description: str
     date: str
+    entities_num: int
     setting: Setting
     analytics: Analytics
     data: list[EntityTimelineData]

@@ -138,7 +138,8 @@ class TimelineSetter(GPTResponseGetter):
             f"Select \" at least {self.min_docs_num_in_1timeline}\", and \"at most {self.max_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
             # f"Pick \"{self.str_docs_num_in_1timeline}\" documents that are most relevant to the above story.\n"
             # "When responding, generate the Document ID, the headline: short_description of the document, and which sentence in the story the document is most related to.\n"
-            "The headline and short_description you choose should cover most of the story.\n"
+            # "The headline and short_description you choose must COVER most of the story.\n"
+            "Most of the story you generated MUST BE COVERED by the headline and short_description you choose.\n"
             f"Please follow these two conditions and generate by using the following OUTPUT FORMAT.\n"
             # f"When responding for \"{self.str_docs_num_in_1timeline}\" documents, please follow these two conditions and generate by using the following OUTPUT FORMAT \"{self.str_docs_num_in_1timeline}\" times.\n"
 
@@ -154,6 +155,11 @@ class TimelineSetter(GPTResponseGetter):
         )
 
         return system_content, user_content_1, user_content_2
+    
+    def sort_docs_by_date(self, docs: list[Doc], ascending: bool = True) -> list[Doc]:
+        # Sort the list of docs using the 'date' key.
+        # The order is ascending by default; if ascending=False, the list will be sorted in descending order.
+        return sorted(docs, key=lambda x: x['date'], reverse=not ascending)
 
     def _delete_dicts_by_id(self, dictionary_list: list[dict], id_list: list[int]) -> list[dict]:
         # Find the indexes of dictionaries with IDs to be removed
@@ -161,7 +167,7 @@ class TimelineSetter(GPTResponseGetter):
         # Create a new list without the dictionaries at the identified indexes
         filtered_list = [item for i, item in enumerate(dictionary_list) if i not in indexes_to_remove]
         return filtered_list
-    
+
     def _check_coverage_by_rouge(self, timeline_list: list[Doc], story: str) -> bool:
         docs_list = []
         for doc in timeline_list:
@@ -219,7 +225,7 @@ class TimelineSetter(GPTResponseGetter):
         self.__reexe_num = value
 
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_story_and_timeline(self, entity_info: EntityData) -> Tuple[TimelineData, list[int]]:
+    def generate_story_and_timeline_without_coverage(self, entity_info: EntityData) -> Tuple[TimelineData, list[int]]:
         # setter for GPTResponseGetter
         self.set_entity_info(entity_info)
 
@@ -242,9 +248,11 @@ class TimelineSetter(GPTResponseGetter):
 
             messages.append({'role': 'user', 'content': user_content_2})
             timeline_list, IDs_from_gpt = self.get_gpt_response_timeline(messages, model_name=self.model_name, temp=0)
+            timeline_list = self.sort_docs_by_date(timeline_list, True)
 
             #Check
-            if self._check_conditions(entity_info, IDs_from_gpt, timeline_list) and self._check_coverage_by_rouge(timeline_list, story):
+            if self._check_conditions(entity_info, IDs_from_gpt, timeline_list):
+            # if self._check_conditions(entity_info, IDs_from_gpt, timeline_list) and self._check_coverage_by_rouge(timeline_list, story):
                 # If all conditions are met
                 print('Got 2nd GPT response.')
                 break # Exit the loop as conditions are met
@@ -280,7 +288,7 @@ class TimelineSetter(GPTResponseGetter):
         for i in range(timeline_num):
             print(f'=== {i+1}/{timeline_num}. START ===')
 
-            timeline_info, IDs_from_gpt = self.generate_story_and_timeline(entity_info_left)
+            timeline_info, IDs_from_gpt = self.generate_story_and_timeline_without_coverage(entity_info_left)
 
             if len(IDs_from_gpt) > 0 and timeline_info['reexe_num'] != -1:
                 list_to_save_timelines.append(timeline_info)
