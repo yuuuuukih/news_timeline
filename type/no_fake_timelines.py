@@ -23,7 +23,7 @@ class TimelineInfo(TypedDict):
 class DocsInfo(TypedDict):
     IDs: list[int]
 
-class EntityData(TypedDict):
+class EntityTimelineData(TypedDict):
     entity_ID: int
     entity_items: list[str]
     docs_info: DocsInfo
@@ -55,4 +55,4 @@ class NoFakeTimeline(TypedDict):
     date: str
     setting: Setting
     analytics: Analytics
-    data: list[EntityData]
+    data: list[EntityTimelineData]

@@ -1,6 +1,26 @@
 from typing import TypedDict
 
-from documents import DocData
+# ====== From ./documents.py because of the import path (ModuleNotFoundError) ======
+class EntitiesInfo(TypedDict):
+    num: int
+    IDs: list[int]
+    entities: list[list[str]]
+
+class DocData(TypedDict):
+    link: str
+    headline: str
+    category: str
+    short_description: str
+    authors: str
+    date: str
+    year: str
+    month: str
+    day: str
+    content: str
+    ID: int
+    preprocessed_tokens: list[str]
+    entities_info: EntitiesInfo
+# ====== Up to here ======
 
 class DocsInfo(TypedDict):
     IDs: list[int]
