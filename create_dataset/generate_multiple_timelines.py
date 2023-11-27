@@ -126,7 +126,7 @@ def main():
     parser.add_argument('--max_docs', default=8, type=int, help='max_docs_num_in_1timeline')
     parser.add_argument('--top_tl', default=0.5, type=float, help='top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.')
     parser.add_argument('--json_file_name', default='no_fake_timelines')
-    parser.add_argument('--max_reexe_num', default=1, type=int)
+    parser.add_argument('--max_reexe_num', default=2, type=int)
     parser.add_argument('--start_entity_id', default=0, type=int)
     args = parser.parse_args()
 

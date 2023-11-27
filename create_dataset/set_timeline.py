@@ -3,6 +3,7 @@ import openai
 import time
 import sys
 from typing import Tuple
+from sumeval.metrics.rouge import RougeCalculator
 
 from get_gpt_response import GPTResponseGetter
 
@@ -23,6 +24,9 @@ def retry_decorator(max_error_count=10, retry_delay=1): # Loop with a maximum of
                     return v
                 except openai.error.Timeout as e:
                     print(f"Timeout error occurred: {e}. Re-running the function.")
+                    error_count += 1
+                except openai.error.APIError as e:
+                    print(f"OPENAI API error occurred: {e}. Re-running the function.")
                     error_count += 1
                 except ValueError as e:
                     print(f"ValueError occurred: {e}. Re-running the function.")
@@ -157,6 +161,39 @@ class TimelineSetter(GPTResponseGetter):
         # Create a new list without the dictionaries at the identified indexes
         filtered_list = [item for i, item in enumerate(dictionary_list) if i not in indexes_to_remove]
         return filtered_list
+    
+    def _check_coverage_by_rouge(self, timeline_list: list[Doc], story: str) -> bool:
+        docs_list = []
+        for doc in timeline_list:
+            docs_list.append(f"{doc['headline']} {doc['short_description']}")
+        docs_str = " ".join(docs_list)
+
+        # Calcurate rouge score
+        rouge = RougeCalculator(stopwords=True, lang="en")
+        rouge_1 = rouge.rouge_n(
+                    summary=docs_str,
+                    references=story,
+                    n=1)
+        rouge_2 = rouge.rouge_n(
+                    summary=docs_str,
+                    references=story,
+                    n=2)
+        rouge_l = rouge.rouge_l(
+                    summary=docs_str,
+                    references=story)
+
+        THRESHOLD = {
+            'rouge_1': 0.32,
+            'rouge_2': 0.15,
+            'rouge_l': 0.2
+        }
+        boolean: bool = rouge_1 > THRESHOLD['rouge_1'] or rouge_2 > THRESHOLD['rouge_2'] or rouge_l > THRESHOLD['rouge_l']
+
+        if not boolean:
+            print('Coverage by rouge score is not enough.')
+            print(f"ROUGE-1: {rouge_1}, ROUGE-2: {rouge_2}, ROUGE-L: {rouge_l}")
+            print(f"Timeline num: {len(timeline_list)}")
+        return boolean
 
     def _check_conditions(self, entity_info: EntityData, IDs_from_gpt: list[int], timeline_list: list[Doc]) -> bool:
         # Check number of docs
@@ -200,14 +237,14 @@ class TimelineSetter(GPTResponseGetter):
             ]
 
             messages = self.get_gpt_response_classic(messages, model_name=self.model_name, temp=self.temp)
-            story = messages[-1]['content']
+            story: str = messages[-1]['content']
             print('Got 1st GPT response.')
 
             messages.append({'role': 'user', 'content': user_content_2})
             timeline_list, IDs_from_gpt = self.get_gpt_response_timeline(messages, model_name=self.model_name, temp=0)
 
             #Check
-            if self._check_conditions(entity_info, IDs_from_gpt, timeline_list):
+            if self._check_conditions(entity_info, IDs_from_gpt, timeline_list) and self._check_coverage_by_rouge(timeline_list, story):
                 # If all conditions are met
                 print('Got 2nd GPT response.')
                 break # Exit the loop as conditions are met
