@@ -26,6 +26,9 @@ def retry_decorator(max_error_count=10, retry_delay=1):
                 except openai.error.Timeout as e:
                     print(f"Timeout error occurred: {e}. Re-running the function.")
                     error_count += 1
+                except openai.error.APIError as e:
+                    print(f"OPENAI API error occurred: {e}. Re-running the function.")
+                    error_count += 1
                 except ValueError as e:
                     print(f"ValueError occurred: {e}. Re-running the function.")
                     error_count += 1
