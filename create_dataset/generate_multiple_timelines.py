@@ -35,8 +35,8 @@ class MultipleTimelineGenerator(TimelineSetter):
     def __init__(self, entities_data: Entities, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
         super().__init__(model_name, temp, min_docs_num_in_1timeline, max_docs_num_in_1timeline, top_tl)
 
-        # self.entity_info_list = entities_data['data'][0]['entities']['list'][start_entity_id:]
-        self.entity_info_list = entities_data['data'][0]['entities']['list'][236:236+1]
+        self.entity_info_list = entities_data['data'][0]['entities']['list'][start_entity_id:]
+        # self.entity_info_list = entities_data['data'][0]['entities']['list'][236:236+3]
 
     @measure_exe_time
     def generate_multiple_timelines(self):
@@ -76,7 +76,14 @@ class MultipleTimelineGenerator(TimelineSetter):
                         'max': self.max_docs_num_in_1timeline
                     },
                     'top_tl': self.top_tl,
-                    'max_reexe_num': self.get_max_reexe_num()
+                    'max_reexe_num': self.get_max_reexe_num(),
+                    'rouge': {
+                        'rouge_used': self.rouge_used,
+                        'alpha': self.rouge_alpha,
+                        'th_1': self.rouge_th_1,
+                        'th_2': self.rouge_th_2,
+                        'th_l': self.rouge_th_l
+                    }
                 },
                 'analytics': {
                     'docs_num_in_1_timeline': {},
@@ -128,6 +135,11 @@ def main():
     parser.add_argument('--json_file_name', default='no_fake_timelines')
     parser.add_argument('--max_reexe_num', default=2, type=int)
     parser.add_argument('--start_entity_id', default=0, type=int)
+    # For rouge score
+    parser.add_argument('--alpha', default=0.8, type=float)
+    parser.add_argument('--th_1', default=0.25, type=float)
+    parser.add_argument('--th_2', default=0.12, type=float)
+    parser.add_argument('--th_l', default=0.15, type=float)
     args = parser.parse_args()
 
     with open(args.file_path, 'r') as F:
@@ -135,6 +147,7 @@ def main():
 
     mtg = MultipleTimelineGenerator(entities_data, args.model_name, args.temp, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
     mtg.set_max_reexe_num(args.max_reexe_num)
+    mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, True)
     mtg.set_file_to_save(json_file_name=args.json_file_name, out_dir=args.out_dir)
     mtg.generate_multiple_timelines()
 

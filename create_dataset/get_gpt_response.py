@@ -148,7 +148,7 @@ class GPTResponseGetter:
     def set_entity_info(self, value: EntityData):
         self.__entity_info = value
 
-    def fortmat_timeline(self, number, IDs: list[int], reasons: list[str]) -> Tuple[list[Doc], list[int]]:
+    def fortmat_timeline(self, number: int, IDs: list[int], reasons: list[str]) -> Tuple[list[Doc], list[int]]:
         self.set_docs_num_in_1timeline(number)
         if not (len(IDs) == len(reasons) == self.__docs_num_in_1timeline):
             print(f"number: {number}")
