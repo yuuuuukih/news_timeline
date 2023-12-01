@@ -8,20 +8,20 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 sys.path.append('../')
-from type.no_fake_timelines import NoFakeTimeline, EntityData
+from type.no_fake_timelines import NoFakeTimeline, EntityTimelineData
 
 class TimelinesAnalyzer:
-    def __init__(self, timelines_data: list[EntityData]) -> None:
+    def __init__(self, timelines_data: list[EntityTimelineData]) -> None:
         self.G = nx.Graph()
         self.timelines_data = timelines_data
         self.N = len(self.timelines_data)
 
         self.load(self.timelines_data)
 
-    def get_node_name(self, entity: EntityData) -> str:
+    def get_node_name(self, entity: EntityTimelineData) -> str:
         return f"{entity['entity_ID']}"
 
-    def load(self, timelines: list[EntityData]):
+    def load(self, timelines: list[EntityTimelineData]):
         # Add nodes
         for entity in timelines:
             self.G.add_node(self.get_node_name(entity))
@@ -66,7 +66,7 @@ class TimelinesAnalyzer:
         print(f"Removed: {len(nodes_to_remove)} | left: {len(left_partition)} | right: {len(right_partition)} | intersection: {len(intersection)}")
 
     @classmethod
-    def community(cls, data: list[EntityData], n=0):
+    def community(cls, data: list[EntityTimelineData], n=0):
         # Create a graph and load the data
         custom_graph = cls(data)
 

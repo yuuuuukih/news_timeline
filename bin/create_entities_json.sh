@@ -21,9 +21,9 @@ DOCUMENTS_PATH="${VERSION_DIR}${DOCUMENTS_JSON}.json"
 
 # === Run ===
 echo "get_entities.py START"
-python ./clustering/get_entities.py --out_dir $VERSION_DIR --min_sup $MIN_SUP --min_conf $MIN_CONF --th $THRESHOLD --k1 $K1 --json_file_name $FP_GROWTH_ENTITIES_JSON
+python ./src/clustering/get_entities.py --out_dir $VERSION_DIR --min_sup $MIN_SUP --min_conf $MIN_CONF --th $THRESHOLD --k1 $K1 --json_file_name $FP_GROWTH_ENTITIES_JSON
 
-cd create_dataset
+cd ./src/create_dataset
 echo "add_props_to_docs.py START"
 python add_props_to_docs.py --out_dir $VERSION_DIR --entities_path $FP_GROWTH_ENTITIES_PATH --json_file_name $DOCUMENTS_JSON
 
