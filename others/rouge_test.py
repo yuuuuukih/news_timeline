@@ -17,6 +17,21 @@ docs_bad_list = [
     "Russia’s Defense Ministry announced that troops will be pulled back in two area where a Ukrainian counter offensive has made significant advances.",
 ]
 
+docs_half_good_list = [
+    "Russia Launches Fight For Industrial Heartland, Ukraine Says",
+    "Moscow has declared the capture of the Donbas to be its main goal in the war since its attempt to seize the capital, Kyiv, failed.",
+    "Russia Plans To Annex Much Of Eastern Ukraine, Senior U.S. Official Says",
+    "Such a move would not be recognized by the U.S. or its allies, Michael Carpenter, U.S. ambassador to the Organization for Security and Cooperation in Europe, said.",
+    "Ukraine: 9,000 Of Its Troops Killed Since Russia Began War",
+    "The Russian invasion of Ukraine began on Feb. 24.",
+    "U.S.: Russia To Buy Rockets, Artillery Shells From North Korea",
+    "The finding comes after the Biden administration confirmed that the Russian military in August took delivery of Iranian-manufactured drones for use in Ukraine.",
+    "Russia Says It's Pulling Back Forces From Ukraine's Kharkiv Region",
+    "Russia’s Defense Ministry announced that troops will be pulled back in two area where a Ukrainian counter offensive has made significant advances.",
+    "Joe Biden Approves $800 Million In New Military Aid For Ukraine",
+    "As Russia prepares a major offensive in eastern Ukraine, the government in Kyiv says it needs more support from international partners in its efforts to resist."
+]
+
 docs_good_list = [
     "Russia Launches Fight For Industrial Heartland, Ukraine Says",
     "Moscow has declared the capture of the Donbas to be its main goal in the war since its attempt to seize the capital, Kyiv, failed.",
@@ -38,25 +53,9 @@ docs_good_list = [
 rouge = RougeCalculator(stopwords=True, lang="en")
 
 docs_bad = " ".join(docs_bad_list)
+docs_half_good = " ".join(docs_half_good_list)
 docs_good = " ".join(docs_good_list)
 
-rouge_1 = rouge.rouge_n(
-            summary=story,
-            references=docs_bad_list,
-            n=1, alpha=alpha)
-
-rouge_2 = rouge.rouge_n(
-            summary=story,
-            references=docs_bad_list,
-            n=2, alpha=alpha)
-
-rouge_l = rouge.rouge_l(
-            summary=story,
-            references=docs_bad_list, alpha=alpha)
-
-print("ROUGE-1: {}, ROUGE-2: {}, ROUGE-L: {}".format(
-    rouge_1, rouge_2, rouge_l
-).replace(", ", "\n"))
 
 print("=======")
 
@@ -82,17 +81,17 @@ print("=======")
 
 rouge_1 = rouge.rouge_n(
             summary=story,
-            references=docs_good_list,
+            references=docs_half_good,
             n=1, alpha=alpha)
 
 rouge_2 = rouge.rouge_n(
             summary=story,
-            references=docs_good_list,
+            references=docs_half_good,
             n=2, alpha=alpha)
 
 rouge_l = rouge.rouge_l(
             summary=story,
-            references=docs_good_list, alpha=alpha)
+            references=docs_half_good, alpha=alpha)
 
 print("ROUGE-1: {}, ROUGE-2: {}, ROUGE-L: {}".format(
     rouge_1, rouge_2, rouge_l
@@ -139,6 +138,35 @@ alpha=0.8
 rouge-1: 0.25
 rouge-2: 0.12
 rouge-l: 0.15
+
+RESULTS
+alpha = 0.8
+=======
+ROUGE-1: 0.36684782608695654
+ROUGE-2: 0.12396694214876033
+ROUGE-L: 0.1766304347826087
+=======
+ROUGE-1: 0.41131105398457585
+ROUGE-2: 0.16927083333333334
+ROUGE-L: 0.2442159383033419
+=======
+ROUGE-1: 0.43424317617866004
+ROUGE-2: 0.1884422110552764
+ROUGE-L: 0.2357320099255583
+
+alpha = 1
+=======
+ROUGE-1: 0.34177215189873417
+ROUGE-2: 0.11538461538461538
+ROUGE-L: 0.16455696202531647
+=======
+ROUGE-1: 0.3575418994413408
+ROUGE-2: 0.14689265536723164
+ROUGE-L: 0.2122905027932961
+=======
+ROUGE-1: 0.3626943005181347
+ROUGE-2: 0.15706806282722513
+ROUGE-L: 0.19689119170984454
 
 memo
 referenceはリストでも渡せるが、リストで渡すとスコアが下がる。(alpha>=0.5)
