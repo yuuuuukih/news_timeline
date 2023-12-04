@@ -484,6 +484,11 @@ class TimelineSetter(GPTResponseGetter):
             #Check
             if self._check_conditions(entity_info, IDs_from_gpt, timeline_list):
                 # If all conditions are met
+                # Add some docs by rouge score
+                entity_info_copied = copy.deepcopy(entity_info)
+                timeline_list, _ = self.generate_timeline_by_rouge(story, timeline_list, entity_info_copied, useGPT=False)
+                timeline_list = self.sort_docs_by_date(timeline_list, True)
+                print('Got 2nd GPT response.')
                 break # Exit the loop as conditions are met
             else:
                 print('Failed to get 2nd GPT response.')
@@ -496,12 +501,6 @@ class TimelineSetter(GPTResponseGetter):
             self.no_timeline_entity_id.append(entity_info['ID'])
             story = ''
             timeline_list = []
-
-        # Add some docs by rouge score
-        entity_info_copied = copy.deepcopy(entity_info)
-        timeline_list, _ = self.generate_timeline_by_rouge(story, timeline_list, entity_info_copied, useGPT=False)
-        timeline_list = self.sort_docs_by_date(timeline_list, True)
-        print('Got 2nd GPT response.')
 
         # Update timelines
         timeline_info: TimelineData = {
@@ -544,19 +543,20 @@ class TimelineSetter(GPTResponseGetter):
             new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
 
             if not re_generate_flag:
-                print(f'Got a timeline (len = {len(new_timeline_list)}).')
+                timeline_list = self.sort_docs_by_date(new_timeline_list, True)
+                print(f'Got a timeline (len = {len(timeline_list)}).')
                 break
             else:
                 print('Missed to create a timeline.')
         else:
             """
-            In the case of i==2 and re_generate_flag==True
+            When using a timeline that did not exceed the threshold
             """
-            timeline_info_archive = self.get_timeline_info_archive()
-            archive_rouge_scores: list[float] = [item['max_score'] for item in timeline_info_archive]
-            max_score_id: int = np.argmax(np.array(archive_rouge_scores))
-            new_timeline_list = timeline_info_archive[max_score_id]['timeline_list']
-            print(f'Got a compromised timeline (len = {len(new_timeline_list)}).')
+            # timeline_info_archive = self.get_timeline_info_archive()
+            # archive_rouge_scores: list[float] = [item['max_score'] for item in timeline_info_archive]
+            # max_score_id: int = np.argmax(np.array(archive_rouge_scores))
+            # new_timeline_list = timeline_info_archive[max_score_id]['timeline_list']
+            # print(f'Got a compromised timeline (len = {len(new_timeline_list)}).')
 
             """
             When not using a timeline that did not exceed the threshold
@@ -566,8 +566,6 @@ class TimelineSetter(GPTResponseGetter):
             self.no_timeline_entity_id.append(entity_info['ID'])
             story = ''
             timeline_list = []
-
-        timeline_list = self.sort_docs_by_date(new_timeline_list, True)
 
         # Update timelines
         timeline_info: TimelineData = {
