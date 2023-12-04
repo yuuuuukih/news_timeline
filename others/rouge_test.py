@@ -171,3 +171,23 @@ ROUGE-L: 0.19689119170984454
 memo
 referenceはリストでも渡せるが、リストで渡すとスコアが下がる。(alpha>=0.5)
 """
+
+# For rate
+print('=== For rate ===')
+scores = []
+for i in range(8):
+    docs = " ".join(docs_good_list[0:2*(i)])
+    print(f"{i} docs")
+    rouge_2 = rouge.rouge_n(summary=story, references=docs, n=2, alpha=0.8)
+    scores.append(rouge_2)
+    try:
+        rate = scores[i] / scores[i-1]
+    except ZeroDivisionError as e:
+        rate = 0
+    print(f"score: {scores[i]}")
+    print(f"rate: {rate}")
+
+"""
+TH for rate of rouge-2
+1.1
+"""
