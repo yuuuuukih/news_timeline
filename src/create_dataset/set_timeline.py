@@ -294,7 +294,6 @@ class TimelineSetter(GPTResponseGetter):
 
             # Define
             new_doc: Doc
-            new_id: int
 
             """
             Select ONE document
@@ -315,7 +314,6 @@ class TimelineSetter(GPTResponseGetter):
                     if len(new_doc_tuple[0]) == len(new_doc_tuple[1]) == 1:
                         # Get a new document and its ID
                         new_doc = new_doc_tuple[0][0]
-                        new_id = new_doc_tuple[1][0]
                         break
                     else:
                         print(f"Re-choice for the {i + 1}-th time (generate_timeline_by_rouge in set_timeline.py)")
@@ -432,7 +430,7 @@ class TimelineSetter(GPTResponseGetter):
                 break # Exit the loop as conditions are met
             else:
                 print('Failed to get 2nd GPT response.')
-                messages = []
+                # messages = []
                 if i != self.__max_reexe_num:
                     print(f"Re-execution for the {i + 1}-th time")
         else:
@@ -451,7 +449,6 @@ class TimelineSetter(GPTResponseGetter):
         }
 
         return timeline_info
-
 
     """
     (2/3) Generate a timeline with rouge score and multi-docs start
@@ -492,7 +489,7 @@ class TimelineSetter(GPTResponseGetter):
                 break # Exit the loop as conditions are met
             else:
                 print('Failed to get 2nd GPT response.')
-                messages = []
+                # messages = []
                 if i != self.__max_reexe_num:
                     print(f"Re-execution for the {i + 1}-th time")
         else:
@@ -550,7 +547,7 @@ class TimelineSetter(GPTResponseGetter):
                 print('Missed to create a timeline.')
         else:
             """
-            When using a timeline that did not exceed the threshold
+            When using a timeline that did not exceed the threshold in generate_story_and_timeline_with_single_doc_rouge
             """
             # timeline_info_archive = self.get_timeline_info_archive()
             # archive_rouge_scores: list[float] = [item['max_score'] for item in timeline_info_archive]
