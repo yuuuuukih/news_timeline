@@ -111,7 +111,9 @@ class TimelineSetter(GPTResponseGetter):
         },
         '''
 
-    # Setting the prompts
+    """
+    Setting the prompts
+    """
     def get_prompts(self, entity_info: EntityData):
         '''
         system content
@@ -196,10 +198,16 @@ class TimelineSetter(GPTResponseGetter):
 
         return system_content, user_content
 
+    """
+    Useful methods
+    """
     def sort_docs_by_date(self, docs: list[Doc], ascending: bool = True) -> list[Doc]:
         # Sort the list of docs using the 'date' key.
         # The order is ascending by default; if ascending=False, the list will be sorted in descending order.
         return sorted(docs, key=lambda x: x['date'], reverse=not ascending)
+
+    def get_ids_list_from_timeline(self, timeline: list[Doc]) -> list[int]:
+        return [item['ID'] for item in timeline if len(timeline)>0]
 
     def _delete_dicts_by_id(self, dictionary_list: list[dict], id_list: list[int]) -> list[dict]:
         # Find the indexes of dictionaries with IDs to be removed
@@ -268,13 +276,14 @@ class TimelineSetter(GPTResponseGetter):
         return boolean
 
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_timeline_by_rouge(self, story: str, timeline_list: list[Doc], ID_list: list[int], entity_info: EntityData, useGPT=True) -> Tuple[list[Doc], list[int], bool]:
+    def generate_timeline_by_rouge(self, story: str, timeline_list: list[Doc], entity_info: EntityData, useGPT=True) -> Tuple[list[Doc], bool]:
         RE_GENERATE_FLAG = False
+        ID_list = self.get_ids_list_from_timeline(timeline_list)
         # print(f"docs num: {len(entity_info['docs_info']['IDs'])}")
         if self._check_coverage_by_rouge(timeline_list, story) and len(timeline_list) >= self.min_docs_num_in_1timeline:
-            return timeline_list, ID_list, RE_GENERATE_FLAG
+            return timeline_list, RE_GENERATE_FLAG
         elif len(timeline_list) >= self.max_docs_num_in_1timeline:
-            return timeline_list, ID_list, not RE_GENERATE_FLAG
+            return timeline_list, not RE_GENERATE_FLAG
         else:
             # Update entity info left
             entity_info['docs_info'] = {
@@ -313,11 +322,11 @@ class TimelineSetter(GPTResponseGetter):
                 else:
                     raise Exception("Couldn't choose a new document. (generate_timeline_by_rouge in set_timeline.py)")
             else:
+                # Initialize
                 rouge_list = []
-                id_list = []
+                doc_id_list = []
                 timeline_docs_list: list[str] = [f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]
-                # for doc in timeline_list:
-                #     timeline_docs_list.append(f"{doc['headline']} {doc['short_description']}")
+
                 for doc_data in entity_info['docs_info']['docs']:
                     doc_data: DocData
                     docs_list = [f"{doc_data['headline']} {doc_data['short_description']}"]
@@ -326,18 +335,16 @@ class TimelineSetter(GPTResponseGetter):
 
                     scores = self.get_rouge_scores(summary=story, reference=docs_str, alpha=0.8)
                     rouge_list.append(scores['rouge_1'])
-                    id_list.append(doc_data['ID'])
+                    doc_id_list.append(doc_data['ID'])
 
-                # max_id = id_list[np.argmax(np.array(rouge_list))]
                 try:
-                    max_id = id_list[np.argmax(np.array(rouge_list))]
+                    max_id = doc_id_list[np.argmax(np.array(rouge_list))]
                 except ValueError as e:
                     print(f"ValueError here. {e}")
                     print(f"rouge_list: {rouge_list}")
                     sys.exit("STOP")
                 for doc_data in entity_info['docs_info']['docs']:
                     if doc_data['ID'] == max_id:
-                        new_id = max_id
                         new_doc = {
                             'ID': doc_data['ID'],
                             'is_fake': False,
@@ -351,13 +358,12 @@ class TimelineSetter(GPTResponseGetter):
                         break
 
             timeline_list.append(new_doc)
-            ID_list.append(new_id)
 
             # For timeline_info_archive
-            self.append_timeline_info_archive({'max_score': max(rouge_list), 'timeline_list': timeline_list, 'ID_list': ID_list})
+            self.append_timeline_info_archive({'max_score': max(rouge_list), 'timeline_list': timeline_list})
 
             # Execute reccurently
-            return self.generate_timeline_by_rouge(story, timeline_list, ID_list, entity_info, useGPT)
+            return self.generate_timeline_by_rouge(story, timeline_list, entity_info, useGPT)
 
 
     """
@@ -394,7 +400,7 @@ class TimelineSetter(GPTResponseGetter):
     (1/3) Generate a timeline without rouge score
     """
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_story_and_timeline_without_rouge(self, entity_info: EntityData) -> Tuple[TimelineData, list[int]]:
+    def generate_story_and_timeline_without_rouge(self, entity_info: EntityData) -> TimelineData:
         # setter for GPTResponseGetter
         self.set_entity_info(entity_info)
 
@@ -421,7 +427,6 @@ class TimelineSetter(GPTResponseGetter):
 
             #Check
             if self._check_conditions(entity_info, IDs_from_gpt, timeline_list):
-            # if self._check_conditions(entity_info, IDs_from_gpt, timeline_list) and self._check_coverage_by_rouge(timeline_list, story):
                 # If all conditions are met
                 print('Got 2nd GPT response.')
                 break # Exit the loop as conditions are met
@@ -445,14 +450,14 @@ class TimelineSetter(GPTResponseGetter):
             'timeline': timeline_list
         }
 
-        return timeline_info, IDs_from_gpt
+        return timeline_info
 
 
     """
     (2/3) Generate a timeline with rouge score and multi-docs start
     """
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_story_and_timeline_with_mutli_docs_rouge(self, entity_info: EntityData) -> Tuple[TimelineData, list[int]]:
+    def generate_story_and_timeline_with_mutli_docs_rouge(self, entity_info: EntityData) -> TimelineData:
         # setter for GPTResponseGetter
         self.set_entity_info(entity_info)
 
@@ -494,7 +499,7 @@ class TimelineSetter(GPTResponseGetter):
 
         # Add some docs by rouge score
         entity_info_copied = copy.deepcopy(entity_info)
-        timeline_list, IDs_from_gpt, _ = self.generate_timeline_by_rouge(story, timeline_list, IDs_from_gpt, entity_info_copied, useGPT=False)
+        timeline_list, _ = self.generate_timeline_by_rouge(story, timeline_list, entity_info_copied, useGPT=False)
         timeline_list = self.sort_docs_by_date(timeline_list, True)
         print('Got 2nd GPT response.')
 
@@ -506,13 +511,13 @@ class TimelineSetter(GPTResponseGetter):
             'timeline': timeline_list
         }
 
-        return timeline_info, IDs_from_gpt
+        return timeline_info
 
     """
     (3/3) Generate a timeline with rouge score and single-doc start
     """
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_story_and_timeline_with_single_doc_rouge(self, entity_info: EntityData) -> Tuple[TimelineData, list[int]]:
+    def generate_story_and_timeline_with_single_doc_rouge(self, entity_info: EntityData) -> TimelineData:
         # setter for GPTResponseGetter
         self.set_entity_info(entity_info)
 
@@ -536,24 +541,33 @@ class TimelineSetter(GPTResponseGetter):
             # Add some docs by rouge score
             self.initialize_timeline_info_archive()
             entity_info_copied = copy.deepcopy(entity_info)
-            new_timeline_list, new_id_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], [], entity_info_copied, useGPT=False)
+            new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
 
             if not re_generate_flag:
-                print(f'Got a timeline (len = {len(new_id_list)}).')
+                print(f'Got a timeline (len = {len(new_timeline_list)}).')
                 break
             else:
                 print('Missed to create a timeline.')
         else:
-            # In the case of i==2 and re_generate_flag==True
+            """
+            In the case of i==2 and re_generate_flag==True
+            """
             timeline_info_archive = self.get_timeline_info_archive()
             archive_rouge_scores: list[float] = [item['max_score'] for item in timeline_info_archive]
             max_score_id: int = np.argmax(np.array(archive_rouge_scores))
             new_timeline_list = timeline_info_archive[max_score_id]['timeline_list']
-            new_id_list = timeline_info_archive[max_score_id]['ID_list']
-            print(f'Got a compromised timeline (len = {len(new_id_list)}).')
+            print(f'Got a compromised timeline (len = {len(new_timeline_list)}).')
+
+            """
+            When not using a timeline that did not exceed the threshold
+            """
+            print('NO TIMELINE INFO')
+            self.set_reexe_num(-1)
+            self.no_timeline_entity_id.append(entity_info['ID'])
+            story = ''
+            timeline_list = []
 
         timeline_list = self.sort_docs_by_date(new_timeline_list, True)
-        IDs_from_gpt = new_id_list
 
         # Update timelines
         timeline_info: TimelineData = {
@@ -563,7 +577,7 @@ class TimelineSetter(GPTResponseGetter):
             'timeline': timeline_list
         }
 
-        return timeline_info, IDs_from_gpt
+        return timeline_info
 
 
     """
@@ -580,21 +594,22 @@ class TimelineSetter(GPTResponseGetter):
             print(f'=== {i+1}/{timeline_num}. START ===')
 
             if self.rouge_used:
-                # timeline_info, IDs_from_gpt = self.generate_story_and_timeline_with_mutli_docs_rouge(entity_info_left)
-                timeline_info, IDs_from_gpt = self.generate_story_and_timeline_with_single_doc_rouge(entity_info_left)
+                # timeline_info = self.generate_story_and_timeline_with_mutli_docs_rouge(entity_info_left)
+                timeline_info = self.generate_story_and_timeline_with_single_doc_rouge(entity_info_left)
             else:
-                timeline_info, IDs_from_gpt = self.generate_story_and_timeline_without_rouge(entity_info_left)
+                timeline_info = self.generate_story_and_timeline_without_rouge(entity_info_left)
 
-            if len(IDs_from_gpt) > 0 and timeline_info['reexe_num'] != -1:
+            IDs_list = self.get_ids_list_from_timeline(timeline_info['timeline'])
+            if len(IDs_list) > 0 and timeline_info['reexe_num'] != -1:
                 list_to_save_timelines.append(timeline_info)
-                docs_IDs.extend(IDs_from_gpt)
+                docs_IDs.extend(IDs_list)
                 self.analytics_docs_num.append(timeline_info['docs_num'])
             self.analytics_reexe_num.append(timeline_info['reexe_num'])
 
             # Update entity info left
             entity_info_left['docs_info'] = {
-                'IDs': list(set(entity_info_left['docs_info']['IDs']) - set(IDs_from_gpt)),
-                'docs': self._delete_dicts_by_id(entity_info_left['docs_info']['docs'], IDs_from_gpt)
+                'IDs': list(set(entity_info_left['docs_info']['IDs']) - set(IDs_list)),
+                'docs': self._delete_dicts_by_id(entity_info_left['docs_info']['docs'], IDs_list)
             }
             entity_info_left['freq'] = len(entity_info_left['docs_info']['IDs'])
 
