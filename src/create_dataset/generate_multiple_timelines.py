@@ -119,7 +119,7 @@ class MultipleTimelineGenerator(TimelineSetter):
             else:
                 result[str_key] = value
 
-        sorted_result = {k: result[k] for k in sorted(int(result.keys()))}
+        sorted_result = {str(k): result[k] for k in sorted(int(result.keys()))}
         return sorted_result
 
 
