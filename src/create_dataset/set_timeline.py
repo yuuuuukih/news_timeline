@@ -228,12 +228,13 @@ class TimelineSetter(GPTResponseGetter):
     """
     Coverage by rouge score
     """
-    def set_rouge_parms(self, alpha=0.8, th_1=0.25, th_2=0.12, th_l=0.15, rouge_used=True):
+    def set_rouge_parms(self, alpha=0.8, th_1=0.25, th_2=0.12, th_l=0.15, th_2_rate=1.1, rouge_used=True):
         self.rouge_used = rouge_used
         self.rouge_alpha = alpha if rouge_used else None
         self.rouge_th_1 = th_1 if rouge_used else None
         self.rouge_th_2 = th_2 if rouge_used else None
         self.rouge_th_l = th_l if rouge_used else None
+        self.rouge_th_2_rate = th_2_rate if rouge_used else None
 
     def get_rouge_scores(self, summary: str, reference: str, alpha: float):
         rouge = RougeCalculator(stopwords=True, lang="en")
@@ -248,9 +249,7 @@ class TimelineSetter(GPTResponseGetter):
         return scores
 
     def _check_coverage_by_rouge(self, timeline_list: list[Doc], story: str) -> bool:
-        docs_list = []
-        for doc in timeline_list:
-            docs_list.append(f"{doc['headline']} {doc['short_description']}")
+        docs_list = [f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]
         docs_str = " ".join(docs_list)
 
         # Calcurate rouge score
@@ -260,9 +259,6 @@ class TimelineSetter(GPTResponseGetter):
         rouge_l = scores['rouge_l']
 
         THRESHOLD = {
-            # 'rouge_1': 0.25,
-            # 'rouge_2': 0.12,
-            # 'rouge_l': 0.15,
             'rouge_1': self.rouge_th_1,
             'rouge_2': self.rouge_th_2,
             'rouge_l': self.rouge_th_l,
@@ -331,7 +327,7 @@ class TimelineSetter(GPTResponseGetter):
                     docs_list.extend(timeline_docs_list)
                     docs_str = " ".join(docs_list)
 
-                    scores = self.get_rouge_scores(summary=story, reference=docs_str, alpha=0.8)
+                    scores = self.get_rouge_scores(summary=story, reference=docs_str, alpha=self.rouge_alpha)
                     rouge_list.append(scores['rouge_1'])
                     doc_id_list.append(doc_data['ID'])
 
@@ -362,6 +358,104 @@ class TimelineSetter(GPTResponseGetter):
 
             # Execute reccurently
             return self.generate_timeline_by_rouge(story, timeline_list, entity_info, useGPT)
+
+
+    @retry_decorator(max_error_count=10, retry_delay=1)
+    def generate_timeline_by_rouge_rate(self, story: str, timeline_list: list[Doc], entity_info: EntityData, useGPT=True) -> Tuple[list[Doc], bool]:
+        RE_GENERATE_FLAG = False
+        ID_list = self.get_ids_list_from_timeline(timeline_list)
+        if len(timeline_list) >= self.max_docs_num_in_1timeline:
+            return timeline_list, RE_GENERATE_FLAG
+        else:
+            # Update entity info left
+            entity_info['docs_info'] = {
+                'IDs': list(set(entity_info['docs_info']['IDs']) - set(ID_list)),
+                'docs': self._delete_dicts_by_id(entity_info['docs_info']['docs'], ID_list)
+            }
+            entity_info['freq'] = len(entity_info['docs_info']['IDs'])
+
+            # Define
+            new_doc: Doc
+
+            """
+            Select ONE document
+            useGPT True -> select a document by GPT
+            useGPT False -> select a document by max rouge_2 score
+            """
+            if useGPT:
+                system_content, user_content = self.get_prompts_for_rouge(story, entity_info)
+                # messages
+                messages=[
+                    {'role': 'system', 'content': system_content},
+                    {'role': 'user', 'content': user_content}
+                ]
+
+                # Loop processing
+                for i in range(32):
+                    new_doc_tuple = self.get_gpt_response_timeline(messages, model_name=self.model_name, temp=0)
+                    if len(new_doc_tuple[0]) == len(new_doc_tuple[1]) == 1:
+                        # Get a new document and its ID
+                        new_doc = new_doc_tuple[0][0]
+                        break
+                    else:
+                        print(f"Re-choice for the {i + 1}-th time (generate_timeline_by_rouge_rate in set_timeline.py)")
+                else:
+                    raise Exception("Couldn't choose a new document. (generate_timeline_by_rouge_rate in set_timeline.py)")
+            else:
+                # Initialize
+                rouge_list = []
+                doc_id_list = []
+                timeline_docs_list: list[str] = [f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]
+
+                for doc_data in entity_info['docs_info']['docs']:
+                    doc_data: DocData
+                    docs_list = [f"{doc_data['headline']} {doc_data['short_description']}"]
+                    docs_list.extend(timeline_docs_list)
+                    docs_str = " ".join(docs_list)
+
+                    scores = self.get_rouge_scores(summary=story, reference=docs_str, alpha=self.rouge_alpha)
+                    rouge_list.append(scores['rouge_2'])
+                    doc_id_list.append(doc_data['ID'])
+
+                try:
+                    max_id = doc_id_list[np.argmax(np.array(rouge_list))]
+                except ValueError as e:
+                    print(f"ValueError here. {e}")
+                    print(f"rouge_list: {rouge_list}")
+                    sys.exit("STOP")
+                for doc_data in entity_info['docs_info']['docs']:
+                    if doc_data['ID'] == max_id:
+                        new_doc = {
+                            'ID': doc_data['ID'],
+                            'is_fake': False,
+                            'document': f"{doc_data['headline']}: {doc_data['short_description']}",
+                            'headline': doc_data['headline'],
+                            'short_description': doc_data['short_description'],
+                            'date': doc_data['date'],
+                            'content': doc_data['content'],
+                            'reason': "No reasons bacause of no-GPT."
+                        }
+                        break
+
+            # Calcurate rouge score
+            pre_rouge_2 = self.get_rouge_scores(summary=story, reference=" ".join([f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]), alpha=self.rouge_alpha)['rouge_2']
+            timeline_list.append(new_doc)
+            new_rouge_2 = self.get_rouge_scores(summary=story, reference=" ".join([f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]), alpha=self.rouge_alpha)['rouge_2']
+            try:
+                rouge_2_rate = new_rouge_2 / pre_rouge_2
+            except ZeroDivisionError as e:
+                rouge_2_rate = self.rouge_th_2_rate + 1
+
+            # For timeline_info_archive
+            self.append_timeline_info_archive({'max_score': max(rouge_list), 'timeline_list': timeline_list})
+            if rouge_2_rate < self.rouge_th_2_rate:
+                if len(timeline_list) >= self.min_docs_num_in_1timeline+1:
+                    return timeline_list[:-1], RE_GENERATE_FLAG
+                else:
+                    return [], not RE_GENERATE_FLAG
+            else:
+                # Execute reccurently
+                return self.generate_timeline_by_rouge_rate(story, timeline_list, entity_info, useGPT)
 
 
     """
@@ -537,7 +631,8 @@ class TimelineSetter(GPTResponseGetter):
             # Add some docs by rouge score
             self.initialize_timeline_info_archive()
             entity_info_copied = copy.deepcopy(entity_info)
-            new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
+            # new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
+            new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge_rate(story, [], entity_info_copied, useGPT=False)
 
             if not re_generate_flag:
                 timeline_list = self.sort_docs_by_date(new_timeline_list, True)
