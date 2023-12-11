@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import networkx as nx
 import matplotlib.pyplot as plt
 
-sys.path.append('../')
+sys.path.append('../../')
 from type.no_fake_timelines import NoFakeTimeline, EntityTimelineData
 
 class TimelinesAnalyzer:
