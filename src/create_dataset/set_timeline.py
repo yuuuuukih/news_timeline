@@ -228,13 +228,14 @@ class TimelineSetter(GPTResponseGetter):
     """
     Coverage by rouge score
     """
-    def set_rouge_parms(self, alpha=0.8, th_1=0.25, th_2=0.12, th_l=0.15, th_2_rate=1.1, rouge_used=True):
+    def set_rouge_parms(self, alpha=0.8, th_1=0.25, th_2=0.12, th_l=0.15, th_2_rate=1.1, rouge_2_diff=0.008, rouge_used=True):
         self.rouge_used = rouge_used
         self.rouge_alpha = alpha if rouge_used else None
         self.rouge_th_1 = th_1 if rouge_used else None
         self.rouge_th_2 = th_2 if rouge_used else None
         self.rouge_th_l = th_l if rouge_used else None
         self.rouge_th_2_rate = th_2_rate if rouge_used else None
+        self.rouge_th_2_diff = rouge_2_diff if rouge_used else None
 
     def get_rouge_scores(self, summary: str, reference: str, alpha: float):
         rouge = RougeCalculator(stopwords=True, lang="en")
@@ -273,13 +274,13 @@ class TimelineSetter(GPTResponseGetter):
 
     @retry_decorator(max_error_count=10, retry_delay=1)
     def generate_timeline_by_rouge(self, story: str, timeline_list: list[Doc], entity_info: EntityData, useGPT=True) -> Tuple[list[Doc], bool]:
-        RE_GENERATE_FLAG = False
+        RE_GENERATE_FLAG = True
         ID_list = self.get_ids_list_from_timeline(timeline_list)
         # print(f"docs num: {len(entity_info['docs_info']['IDs'])}")
         if self._check_coverage_by_rouge(timeline_list, story) and len(timeline_list) >= self.min_docs_num_in_1timeline:
-            return timeline_list, RE_GENERATE_FLAG
-        elif len(timeline_list) >= self.max_docs_num_in_1timeline:
             return timeline_list, not RE_GENERATE_FLAG
+        elif len(timeline_list) >= self.max_docs_num_in_1timeline:
+            return timeline_list, RE_GENERATE_FLAG
         else:
             # Update entity info left
             entity_info['docs_info'] = {
@@ -361,11 +362,12 @@ class TimelineSetter(GPTResponseGetter):
 
 
     @retry_decorator(max_error_count=10, retry_delay=1)
-    def generate_timeline_by_rouge_rate(self, story: str, timeline_list: list[Doc], entity_info: EntityData, useGPT=True) -> Tuple[list[Doc], bool]:
-        RE_GENERATE_FLAG = False
+    def generate_timeline_by_chaneg_of_rouge(self, story: str, timeline_list: list[Doc], entity_info: EntityData, useGPT=False, diff=True) -> Tuple[list[Doc], bool]:
+        RE_GENERATE_FLAG = True
         ID_list = self.get_ids_list_from_timeline(timeline_list)
+        # print(f"docs num: {len(entity_info['docs_info']['IDs'])}")
         if len(timeline_list) >= self.max_docs_num_in_1timeline:
-            return timeline_list, RE_GENERATE_FLAG
+            return timeline_list, not RE_GENERATE_FLAG
         else:
             # Update entity info left
             entity_info['docs_info'] = {
@@ -396,11 +398,12 @@ class TimelineSetter(GPTResponseGetter):
                     if len(new_doc_tuple[0]) == len(new_doc_tuple[1]) == 1:
                         # Get a new document and its ID
                         new_doc = new_doc_tuple[0][0]
+                        rouge_list = [-1]
                         break
                     else:
-                        print(f"Re-choice for the {i + 1}-th time (generate_timeline_by_rouge_rate in set_timeline.py)")
+                        print(f"Re-choice for the {i + 1}-th time (generate_timeline_by_chaneg_of_rouge in set_timeline.py)")
                 else:
-                    raise Exception("Couldn't choose a new document. (generate_timeline_by_rouge_rate in set_timeline.py)")
+                    raise Exception("Couldn't choose a new document. (generate_timeline_by_chaneg_of_rouge in set_timeline.py)")
             else:
                 # Initialize
                 rouge_list = []
@@ -441,21 +444,36 @@ class TimelineSetter(GPTResponseGetter):
             pre_rouge_2 = self.get_rouge_scores(summary=story, reference=" ".join([f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]), alpha=self.rouge_alpha)['rouge_2']
             timeline_list.append(new_doc)
             new_rouge_2 = self.get_rouge_scores(summary=story, reference=" ".join([f"{doc['headline']} {doc['short_description']}" for doc in timeline_list]), alpha=self.rouge_alpha)['rouge_2']
-            try:
-                rouge_2_rate = new_rouge_2 / pre_rouge_2
-            except ZeroDivisionError as e:
-                rouge_2_rate = self.rouge_th_2_rate + 1
 
             # For timeline_info_archive
             self.append_timeline_info_archive({'max_score': max(rouge_list), 'timeline_list': timeline_list})
-            if rouge_2_rate < self.rouge_th_2_rate:
-                if len(timeline_list) >= self.min_docs_num_in_1timeline+1:
-                    return timeline_list[:-1], RE_GENERATE_FLAG
-                else:
-                    return [], not RE_GENERATE_FLAG
+
+            """
+            diff=True -> use difference between new_rouge_2 and pre_rouge_2
+            diff=False -> use rate of rouge_2 (new_rouge_2 / pre_rouge_2)
+            """
+            reccurent_condition: bool
+            if diff:
+                rouge_2_diff = new_rouge_2 - pre_rouge_2
+                reccurent_condition = rouge_2_diff > self.rouge_th_2_diff
+                # print(f"new_rouge_2: {new_rouge_2}, diff: {rouge_2_diff}")
             else:
+                try:
+                    rouge_2_rate = new_rouge_2 / pre_rouge_2
+                except ZeroDivisionError as e:
+                    rouge_2_rate = self.rouge_th_2_rate + 1
+
+                reccurent_condition = rouge_2_rate > self.rouge_th_2_rate
+
+            # Reccurent or not
+            if reccurent_condition:
                 # Execute reccurently
-                return self.generate_timeline_by_rouge_rate(story, timeline_list, entity_info, useGPT)
+                return self.generate_timeline_by_chaneg_of_rouge(story, timeline_list, entity_info, useGPT)
+            else:
+                if len(timeline_list) >= self.min_docs_num_in_1timeline+1:
+                    return timeline_list[:-1], not RE_GENERATE_FLAG
+                else:
+                    return [], RE_GENERATE_FLAG
 
 
     """
@@ -616,7 +634,7 @@ class TimelineSetter(GPTResponseGetter):
 
 
         # Loop processing
-        for i in range(3):
+        for i in range(5):
             self.set_reexe_num(i)
 
             # messages
@@ -632,14 +650,14 @@ class TimelineSetter(GPTResponseGetter):
             self.initialize_timeline_info_archive()
             entity_info_copied = copy.deepcopy(entity_info)
             # new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
-            new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge_rate(story, [], entity_info_copied, useGPT=False)
+            new_timeline_list, re_generate_flag = self.generate_timeline_by_chaneg_of_rouge(story, [], entity_info_copied, useGPT=False)
 
-            if not re_generate_flag:
+            if re_generate_flag:
+                print('Missed to create a timeline.')
+            else:
                 timeline_list = self.sort_docs_by_date(new_timeline_list, True)
                 print(f'Got a timeline (len = {len(timeline_list)}).')
                 break
-            else:
-                print('Missed to create a timeline.')
         else:
             """
             When using a timeline that did not exceed the threshold in generate_story_and_timeline_with_single_doc_rouge
