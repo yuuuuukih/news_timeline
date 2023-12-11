@@ -84,6 +84,7 @@ class MultipleTimelineGenerator(TimelineSetter):
                         'th_2': self.rouge_th_2,
                         'th_l': self.rouge_th_l,
                         'th_2_rate': self.rouge_th_2_rate,
+                        'th_2_diff': self.rouge_th_2_diff,
                     }
                 },
                 'analytics': {
@@ -119,7 +120,7 @@ class MultipleTimelineGenerator(TimelineSetter):
             else:
                 result[str_key] = value
 
-        sorted_result = {str(k): result[k] for k in sorted(int(result.keys()))}
+        sorted_result = {k: result[k] for k in sorted(result, key=int)}
         return sorted_result
 
 
@@ -142,6 +143,7 @@ def main():
     parser.add_argument('--th_2', default=0.12, type=float)
     parser.add_argument('--th_l', default=0.15, type=float)
     parser.add_argument('--th_2_rate', default=1.1, type=float)
+    parser.add_argument('--th_2_diff', default=0.008, type=float)
     args = parser.parse_args()
 
     with open(args.file_path, 'r') as F:
@@ -149,7 +151,7 @@ def main():
 
     mtg = MultipleTimelineGenerator(entities_data, args.model_name, args.temp, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
     mtg.set_max_reexe_num(args.max_reexe_num)
-    mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, True)
+    mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, True)
     mtg.set_file_to_save(json_file_name=args.json_file_name, out_dir=args.out_dir)
     mtg.generate_multiple_timelines()
 
