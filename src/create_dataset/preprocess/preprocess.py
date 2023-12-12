@@ -1,5 +1,6 @@
 '''
-Get the content of articles by scraping
+1. Process the raw news category dataset to json format.
+2. Get the content of articles by scraping
 '''
 
 import os
