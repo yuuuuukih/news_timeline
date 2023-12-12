@@ -25,20 +25,16 @@ class Preprocessor:
         self.start_year = start_year
         self.end_year = end_year
 
-        formatted_data = self.format_json(self.news_catedory_dataset)
-        data_without_content = self.add_time_info(formatted_data)
-        split_data = [d for d in data_without_content if self.start_year <= int(d['year']) <= self.end_year] if not (self.start_year == 2012 and self.end_year == 2022) else data_without_content
-        data_with_content = self.add_content(split_data)
-        self.preprocessed_data = {'name': f'News_Category_Dataset_v3 with content ({self.start_year} - {self.end_year})','length': len(data_with_content) , 'data': data_with_content}
+        self._preprocess()
 
     # Formatting the dataset.
-    def format_json(self, file_path: str):
+    def _format_json(self, file_path: str):
         data = [json.loads(line.strip()) for line in open(file_path)]
         print('Format completed.')
         return data
 
     # Add the year, month, day infomation as properties.
-    def add_time_info(self, data):
+    def _add_time_info(self, data):
         formatted_data = []
         for d in data:
             year, month, day = d['date'].split('-')
@@ -76,7 +72,7 @@ class Preprocessor:
             return None
 
     # Receives a list of data, scrapes it, and outputs a list with the article content added.
-    def add_content(self, data_list):
+    def _add_content(self, data_list):
         formatted_data = []
         for d in tqdm(data_list):
             # Double quotes are obtained as "\".
@@ -87,6 +83,18 @@ class Preprocessor:
             formatted_data.append(new_d)
         print('Contents are added completely.')
         return formatted_data
+
+    def _preprocess(self):
+        formatted_data = self._format_json(self.news_catedory_dataset)
+        data_without_content = self._add_time_info(formatted_data)
+        split_data = [d for d in data_without_content if self.start_year <= int(d['year']) <= self.end_year] if not (self.start_year == 2012 and self.end_year == 2022) else data_without_content
+        data_with_content = self._add_content(split_data)
+
+        self.preprocessed_data = {
+            'name': f'News_Category_Dataset_v3 with content ({self.start_year} - {self.end_year})',
+            'length': len(data_with_content),
+            'data': data_with_content
+        }
 
     def get_preprocessed_data(self):
         return self.preprocessed_data
