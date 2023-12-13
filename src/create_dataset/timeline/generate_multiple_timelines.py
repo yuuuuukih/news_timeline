@@ -1,35 +1,16 @@
 import os
-import sys
 import json
-import functools
 import datetime
-import time
 from collections import Counter
 from argparse import ArgumentParser
 
-from set_timeline import TimelineSetter
+from create_dataset.timeline.set_timeline import TimelineSetter
 
-sys.path.append('../')
-from type.entities import Entities
-from type.no_fake_timelines import EntityTimelineData, NoFakeTimeline
+from create_dataset.utils.measure_exe_time import measure_exe_time
 
-# decorator
-def measure_exe_time(func):
-    functools.wraps(func)
-    def _wrapper(*args, **keywords):
-        start_time = time.time()
+from create_dataset.type.entities import Entities
+from create_dataset.type.no_fake_timelines import EntityTimelineData, NoFakeTimeline
 
-        v = func(*args, **keywords)
-
-        end_time = time.time()
-        exe_time = end_time - start_time
-        hours, remainder = divmod(exe_time, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        formatted_time = f"{int(hours)}h {int(minutes)}m {int(seconds)}s"
-        print(f"The execution time of the {func.__name__} function is {formatted_time}.")
-
-        return v
-    return _wrapper
 
 class MultipleTimelineGenerator(TimelineSetter):
     def __init__(self, entities_data: Entities, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
@@ -143,7 +124,7 @@ def main():
     parser.add_argument('--th_2', default=0.12, type=float)
     parser.add_argument('--th_l', default=0.15, type=float)
     parser.add_argument('--th_2_rate', default=1.1, type=float)
-    parser.add_argument('--th_2_diff', default=0.008, type=float)
+    parser.add_argument('--th_2_diff', default=0.007, type=float)
     args = parser.parse_args()
 
     with open(args.file_path, 'r') as F:

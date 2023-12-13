@@ -1,13 +1,11 @@
 import os
-import sys
 import openai
 import json
 
 from typing import Tuple
 
-sys.path.append('../')
-from type.entities import EntityData
-from type.no_fake_timelines import Doc
+from create_dataset.type.entities import EntityData
+from create_dataset.type.no_fake_timelines import Doc
 
 class GPTResponseGetter:
     '''
