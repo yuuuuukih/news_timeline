@@ -13,8 +13,8 @@ from nltk.corpus import wordnet
 # nltk.download('wordnet')
 # nltk.download('averaged_perceptron_tagger')
 
-from .tfidf import CustomTFIDF
-from .bm25 import OkapiBM25
+from create_dataset.keyword_groups.text_process.tfidf import CustomTFIDF
+from create_dataset.keyword_groups.text_process.bm25 import OkapiBM25
 
 # decorator
 def print_processing_status(func):
