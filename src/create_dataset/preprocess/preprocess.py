@@ -93,6 +93,10 @@ class Preprocessor:
         self.preprocessed_data = {
             'name': f'News_Category_Dataset_v3 with content ({self.start_year} - {self.end_year})',
             'length': len(data_with_content),
+            'range': {
+                'start_year': self.start_year,
+                'end_year': self.end_year
+            },
             'data': data_with_content
         }
 
