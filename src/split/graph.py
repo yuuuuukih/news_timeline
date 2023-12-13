@@ -1,4 +1,3 @@
-import sys
 import json
 from tqdm import tqdm
 import random
@@ -7,8 +6,7 @@ from argparse import ArgumentParser
 import networkx as nx
 import matplotlib.pyplot as plt
 
-sys.path.append('../../')
-from type.no_fake_timelines import NoFakeTimeline, EntityTimelineData
+from create_dataset.type.no_fake_timelines import NoFakeTimeline, EntityTimelineData
 
 class TimelinesAnalyzer:
     def __init__(self, timelines_data: list[EntityTimelineData]) -> None:
