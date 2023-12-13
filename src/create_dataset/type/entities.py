@@ -1,5 +1,5 @@
 from typing import TypedDict
-from type.documents import DocData
+from create_dataset.type.documents import DocData
 
 class DocsInfo(TypedDict):
     IDs: list[int]
@@ -11,9 +11,13 @@ class EntityData(TypedDict):
     ID: int
     docs_info: DocsInfo
 
+class EntitiesNum(TypedDict):
+    sum: int
+    distribution: dict[str, int]
+
 class EntitiesSection(TypedDict):
     comments: str
-    The_number_of_entities: int # The number of entities
+    entities_num: EntitiesNum
     list: list[EntityData]
 
 class Hparms(TypedDict):
@@ -37,6 +41,7 @@ class Entities(TypedDict):
     description: str
     year: str
     The_number_of_documents: int # The number of documents
+    category: dict[str, int]
     data: list[EntitiesData]
 
 
