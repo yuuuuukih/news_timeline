@@ -10,11 +10,12 @@ from create_dataset.utils.measure_exe_time import measure_exe_time
 
 from create_dataset.type.entities import Entities
 from create_dataset.type.no_fake_timelines import EntityTimelineData, NoFakeTimeline
+from typing import Literal
 
 
 class MultipleTimelineGenerator(TimelineSetter):
-    def __init__(self, entities_data: Entities, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
-        super().__init__(model_name, temp, min_docs_num_in_1timeline, max_docs_num_in_1timeline, top_tl)
+    def __init__(self, entities_data: Entities, model_name: str, temp: float, judgement: Literal['diff', 'rate', 'value'], min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
+        super().__init__(model_name, temp, judgement, min_docs_num_in_1timeline, max_docs_num_in_1timeline, top_tl)
 
         self.entity_info_list = entities_data['data'][0]['entities']['list'][start_entity_id:]
         # self.entity_info_list = entities_data['data'][0]['entities']['list'][236:236+3]
@@ -104,43 +105,3 @@ class MultipleTimelineGenerator(TimelineSetter):
         sorted_result = {k: result[k] for k in sorted(result, key=int)}
         return sorted_result
 
-
-
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/entities.json')
-    parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
-    parser.add_argument('--model_name', default='gpt-4')
-    parser.add_argument('--temp', default=0.8, type=float, help='Temperature for 1st response of GPT.')
-    parser.add_argument('--min_docs', default=4, type=int, help='min_docs_num_in_1timeline')
-    parser.add_argument('--max_docs', default=8, type=int, help='max_docs_num_in_1timeline')
-    parser.add_argument('--top_tl', default=0.5, type=float, help='top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.')
-    parser.add_argument('--json_file_name', default='no_fake_timelines')
-    parser.add_argument('--max_reexe_num', default=2, type=int)
-    parser.add_argument('--start_entity_id', default=0, type=int)
-    # For rouge score
-    parser.add_argument('--alpha', default=0.8, type=float)
-    parser.add_argument('--th_1', default=0.25, type=float)
-    parser.add_argument('--th_2', default=0.12, type=float)
-    parser.add_argument('--th_l', default=0.15, type=float)
-    parser.add_argument('--th_2_rate', default=1.1, type=float)
-    parser.add_argument('--th_2_diff', default=0.007, type=float)
-    args = parser.parse_args()
-
-    with open(args.file_path, 'r') as F:
-        entities_data: Entities = json.load(F)
-
-    mtg = MultipleTimelineGenerator(entities_data, args.model_name, args.temp, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
-    mtg.set_max_reexe_num(args.max_reexe_num)
-    mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, True)
-    mtg.set_file_to_save(json_file_name=args.json_file_name, out_dir=args.out_dir)
-    mtg.generate_multiple_timelines()
-
-'''
-テストの時は
-- [:]の中を確認
-- get_gpt_response.pyのcontentを確認
-'''
-
-if __name__ == '__main__':
-    main()

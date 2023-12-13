@@ -1,5 +1,5 @@
 import sys
-from typing import Tuple
+from typing import Tuple, Literal
 from sumeval.metrics.rouge import RougeCalculator
 import numpy as np
 import copy
@@ -16,7 +16,7 @@ class TimelineSetter(GPTResponseGetter):
     docs_num_in_1timeline: The number of documents contained in ONE timeline,
     top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.
     '''
-    def __init__(self, model_name, temp, min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5):
+    def __init__(self, model_name: str, temp: float, judgement: Literal['diff', 'rate', 'value'], min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5):
         # super
         # super.__init__()
         # parameters
@@ -25,6 +25,7 @@ class TimelineSetter(GPTResponseGetter):
         self.min_docs_num_in_1timeline = min_docs_num_in_1timeline
         self.max_docs_num_in_1timeline = max_docs_num_in_1timeline
         self.top_tl = top_tl
+        self.judgement = judgement
         # preprocess of docs_num_in_1timeline
         self.list_docs_num_in_1timeline = list(range(self.min_docs_num_in_1timeline, self.max_docs_num_in_1timeline + 1))
         self.str_docs_num_in_1timeline = ' or '.join([str(n) for n in self.list_docs_num_in_1timeline])
@@ -605,8 +606,14 @@ class TimelineSetter(GPTResponseGetter):
             # Add some docs by rouge score
             self.initialize_timeline_info_archive()
             entity_info_copied = copy.deepcopy(entity_info)
-            # new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
-            new_timeline_list, re_generate_flag = self.generate_timeline_by_chaneg_of_rouge(story, [], entity_info_copied, useGPT=False)
+            if self.judgement == 'diff':
+                new_timeline_list, re_generate_flag = self.generate_timeline_by_chaneg_of_rouge(story, [], entity_info_copied, useGPT=False, diff=True)
+            elif self.judgement == 'rate':
+                new_timeline_list, re_generate_flag = self.generate_timeline_by_chaneg_of_rouge(story, [], entity_info_copied, useGPT=False, diff=False)
+            elif self.judgement == 'value':
+                new_timeline_list, re_generate_flag = self.generate_timeline_by_rouge(story, [], entity_info_copied, useGPT=False)
+            else:
+                sys.exit('Argument error in set_timeline.py. judgement must be diff or rate or value.')
 
             if re_generate_flag:
                 print('Missed to create a timeline.')
