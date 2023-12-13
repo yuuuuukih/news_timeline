@@ -4,10 +4,7 @@ import json
 import copy
 from argparse import ArgumentParser
 
-import sys
-sys.path.append('../')
-from clustering.text_process.preprocess import TextProcessor
-
+from keyword_groups.text_process.preprocess import TextProcessor
 
 def count_elements(list):
     count_dict = {}
