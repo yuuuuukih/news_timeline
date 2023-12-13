@@ -1,205 +1,225 @@
-import os
-import json
-import random
-from argparse import ArgumentParser
+import sys
+import copy
 
-from text_process.preprocess import TextProcessor
-from fp_growth.fp_growth import fp_growth
+from create_dataset.keyword_groups.text_process.preprocess import TextProcessor
+from create_dataset.keyword_groups.fp_growth.fp_growth import fp_growth
+from create_dataset.type.documents import Documents
+from create_dataset.type.entities import Entities
 
-def get_sorted_random_list(list, num):
-    new_list = random.sample(list, min(num, len(list)))
-    new_list = sorted(new_list, key=lambda x: x['freq'])
-    return new_list
+class KeywordGroupsGetter:
+    def __init__(
+            self, preprocessed_data: dict,
+            th: float, min_sup: float, min_conf: float, k1: float,
+            rm_stopwords: bool, lemmatize: bool, rm_single_char: bool, rm_non_noun_verb: bool, rm_non_noun: bool, rm_duplicates: bool, tfidf: bool, bm25: bool,
+            m:  str, max_for_removed_words: int, table_show: bool
+        ) -> None:
+        self.preprocessed_data = preprocessed_data
+        self.th = th
+        self.min_sup = min_sup
+        self.min_conf = min_conf
+        self.k1 = k1
+        self.rm_stopwords = rm_stopwords
+        self.lemmatize = lemmatize
+        self.rm_single_char = rm_single_char
+        self.rm_non_noun_verb = rm_non_noun_verb
+        self.rm_non_noun = rm_non_noun
+        self.rm_duplicates = rm_duplicates
+        self.tfidf = tfidf
+        self.bm25 = bm25
+        self.m = m
+        self.max_for_removed_words = max_for_removed_words
+        self.table_show = table_show
 
-def save_entities(data, out_dir, file_name='fp_growth_entities'):
-    data_json = os.path.join(out_dir, f'{file_name}.json')
+        # get keyword groups (entities)
+        self.corpus: list[str] = [f"{doc['headline']} {doc['short_description']}" for doc in self.preprocessed_data['data']]
+        self._process_data()
+        self._add_props_to_fp_growth_keyword_groups()
 
-    '''
-    Template is generated if file_name.json is not available.
-    '''
-    if not os.path.exists(data_json):
-        format = {
-            'name': 'Entities Log',
-            'description': 'This file contains the results of previous runs of get_entities.py with hyper parameters.',
-            'year': '2019-2022',
-            'The number of documents': '7523',
-            'data': []
+    def _process_data(self):
+        '''
+        Process data
+        '''
+        # Instantiation and tokenize
+        tp = TextProcessor(self.corpus)
+
+        # Lemmatize
+        if self.lemmatize:
+            tp.lemmatize()
+
+        # Remove stop words
+        if self.rm_stopwords:
+            tp.remove_stop_words()
+
+        # Remove single character
+        if self.rm_single_char:
+            tp.remove_single_character()
+
+        # Remove non noun and verb
+        if self.rm_non_noun_verb:
+            tp.remove_non_noun_verb()
+
+        # Remove non noun
+        if self.rm_non_noun:
+            tp.remove_non_noun()
+
+        # TF-IDF
+        if self.tfidf:
+            removed_words = tp.tfidf(threshold=self.th, show_removed_wods=False, num_of_words_to_display=self.max_for_removed_words)
+
+        # Okapi BM25
+        if self.bm25:
+            removed_words = tp.bm25(threshold=self.th, k1=self.k1, show_removed_wods=False, num_of_words_to_display=self.max_for_removed_words)
+
+        # Remove dupulicates
+        if self.rm_duplicates:
+            tp.remove_dupulicates()
+
+        # Add doc ID
+        corpus_with_docID = tp.add_doc_id(tp.tokenized_corpus)
+
+        # FP-growth
+        output = fp_growth(corpus_with_docID, min_support=self.min_sup, min_confidence=self.min_conf, show=self.table_show)
+
+        # Filter
+        filtered_output = []
+        for entities in output:
+            # --m examples: "items >= 2", "items >= 2 and freq < 50"
+            if len(entities['items']) >= 2:
+                filtered_output.append(entities)
+
+        sorted_output = sorted(filtered_output, key=lambda x: x['freq'])
+        for i, entities in enumerate(sorted_output):
+            entities['ID'] = i
+
+        # Produciton
+        formatted_output = {
+            "preprocess": {
+                "Remove stop words": self.rm_stopwords,
+                "Lemmatize": self.lemmatize,
+                "Remove single character": self.rm_single_char,
+                "Remove non noun and verb": self.rm_non_noun_verb,
+                "Remove non noun": self.rm_non_noun,
+                "Remove dupulicates": self.rm_duplicates,
+                "TF-IDF": self.tfidf,
+                "Okapi BM25": self.bm25
+            },
+            "hparms": {
+                "threshold": self.th,
+                "min_support": self.min_sup,
+                "min_confidence": self.min_conf,
+                "k1": None if self.bm25 == False else self.k1
+            },
+            "words_removed_by_Okapi_BM25_TF_IDF": {
+                "The_number_of_words": len(removed_words),
+                "list": removed_words
+            },
+            "entities": {
+                "comments": self.m,
+                "entities_num": {
+                    'sum': len(filtered_output),
+                    'distribution': {}
+                },
+                "list": sorted_output
+            }
         }
-    else:
-        with open(data_json, 'r') as json_file:
-            format = json.load(json_file)
 
-    # Update
-    format['data'].append(data)
+        self.fp_growth_keyword_groups = {
+            'name': 'Keyword Groups',
+            'description': 'This file contains the results of FP-growth with hyper parameters.',
+            'year': f"{self.preprocessed_data['range']['start_year']}-{self.preprocessed_data['range']['end_year']}",
+            'The_number_of_documents': self.preprocessed_data['length'],
+            'category': {},
+            'data': [formatted_output]
+        }
 
-    # save the json file.
-    with open(data_json, 'w', encoding='utf-8') as json_file:
-        json.dump(format, json_file, indent=4, ensure_ascii=False, separators=(',', ': '))
-        print(f'Data is saved to {file_name}.json')
+    def _count_elements(self, list) -> dict[str, int]:
+        count_dict = {}
+        for item in list:
+            if str(item) not in count_dict.keys():
+                count_dict[str(item)] = list.count(item)
+        return count_dict
 
+    def _add_props_to_fp_growth_keyword_groups(self):
+        preprocessed_data: Documents = copy.deepcopy(self.preprocessed_data)
+        data_list = preprocessed_data['data']
+        fp_growth_keyword_groups: Entities = copy.deepcopy(self.fp_growth_keyword_groups)
+        entities_list = fp_growth_keyword_groups['data'][0]['entities']['list']
 
-def main():
-    parser = ArgumentParser()
-    # Path
-    parser.add_argument('--file_path', default='/mnt/mint/hara/datasets/news_category_dataset/preprocessed/with_content/2019_2022.json')
-    parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/')
-    # Hyper parameter
-    parser.add_argument('--th', default=0.4, type=float)
-    parser.add_argument('--min_sup', default=0.01, type=float)
-    parser.add_argument('--min_conf', default=0.2, type=float)
-    parser.add_argument('--k1', default=1.2, type=float)
-    # Preprocess
-    parser.add_argument('--rm_stopwords', default=True, type=bool)
-    parser.add_argument('--lemmatize', default=True, type=bool)
-    parser.add_argument('--rm_single_char', default=True, type=bool)
-    parser.add_argument('--rm_non_noun_verb', default=False, type=bool)
-    parser.add_argument('--rm_non_noun', default=True, type=bool)
-    parser.add_argument('--rm_duplicates', default=True, type=bool)
-    parser.add_argument('--tfidf', default=False, type=bool) #DEFAULT ONLY FALSE
-    parser.add_argument('--bm25', default=True, type=bool)
-    # Comments for conditions
-    parser.add_argument('--m', default='items >= 2', type=str)
-    # Basically fixed
-    parser.add_argument('--max_output', default=40, type=int)
-    parser.add_argument('--max_for_removed_words', default=20, type=int)
-    parser.add_argument('--json_file_name', default='fp_growth_entities')
-    # Others
-    parser.add_argument('--table_show', default=False, action='store_true')
-    parser.add_argument('--no_save', default=True, action='store_false')
+        '''
+        ID prop
+        '''
+        for i, doc in enumerate(data_list):
+            doc['ID'] = i
 
-    args = parser.parse_args()
-
-    with open(args.file_path, 'r') as F:
-        data = json.load(F)
-
-    #headline and short_description
-    corpus = []
-    for doc in data['data']:
-        hl_sd = ' '.join([doc['headline'], doc['short_description']])
-        corpus.append(hl_sd)
-
-    '''
-    Preprocess
-    '''
-    # Instantiation and tokenize
-    tp = TextProcessor(corpus)
-
-    # Lemmatize
-    if args.lemmatize:
+        '''
+        preprocessed_tokens prop
+        '''
+        # Preprocess
+        tp = TextProcessor(self.corpus)
         tp.lemmatize()
-
-    # Remove stop words
-    if args.rm_stopwords:
         tp.remove_stop_words()
-
-    # Remove single character
-    if args.rm_single_char:
         tp.remove_single_character()
-
-    # Remove non noun and verb
-    if args.rm_non_noun_verb:
-        tp.remove_non_noun_verb()
-
-    # Remove non noun
-    if args.rm_non_noun:
         tp.remove_non_noun()
-
-    # TF-IDF
-    if args.tfidf:
-        removed_words = tp.tfidf(threshold=args.th, show_removed_wods=False, num_of_words_to_display=args.max_for_removed_words)
-
-    # Okapi BM25
-    if args.bm25:
-        removed_words = tp.bm25(threshold=args.th, k1=args.k1, show_removed_wods=False, num_of_words_to_display=args.max_for_removed_words)
-
-    # Remove dupulicates
-    if args.rm_duplicates:
+        #NO BM25
         tp.remove_dupulicates()
+        for doc, tokenized_doc in zip(data_list, tp.tokenized_corpus):
+            doc['preprocessed_tokens'] = tokenized_doc
 
-    # print(tp.tokenized_corpus[:30])
+        '''
+        entities_info prop
+        '''
+        for doc in data_list:
+            entities_info_prop = {'num': -1, 'IDs': [], 'entities': []}
+            for entities in entities_list:
+                if set(entities['items']) <= set(doc['preprocessed_tokens']):
+                    entities_info_prop['IDs'].append(entities['ID'])
+                    entities_info_prop['entities'].append(entities['items'])
+            entities_info_prop['num'] = len(entities_info_prop['IDs'])
+            doc['entities_info'] = entities_info_prop
 
-    # Add doc ID
-    corpus_with_docID = tp.add_doc_id(tp.tokenized_corpus)
+        '''
+        Analytics prop
+        '''
+        category_list = []
+        entities_num_list = []
+        for doc in data_list:
+            category_list.append(doc['category'])
+            entities_num_list.append(doc['entities_info']['num'])
 
-    # FP-growth
-    output = fp_growth(corpus_with_docID, min_support=args.min_sup, min_confidence=args.min_conf, show=args.table_show)
-
-    # Filter
-    filtered_output = []
-    for entities in output:
-        # --m examples: "items >= 2", "items >= 2 and freq < 50"
-        if len(entities['items']) >= 2:
-        # if len(entities['items']) >= 2 and entities['freq'] < 50:
-            filtered_output.append(entities)
-
-    sorted_output = sorted(filtered_output, key=lambda x: x['freq'])
-    for i, entities in enumerate(sorted_output):
-        entities['ID'] = i
-
-    # Save
-    # Test
-    # data = {
-    #     "preprocess": {
-    #         "Remove stop words": args.rm_stopwords,
-    #         "Lemmatize": args.lemmatize,
-    #         "Remove single character": args.rm_single_char,
-    #         "Remove non noun and verb": args.rm_non_noun_verb,
-    #         "Remove non noun": args.rm_non_noun,
-    #         "Remove dupulicates": args.rm_duplicates,
-    #         "TF-IDF": args.tfidf,
-    #         "Okapi BM25": args.bm25
-    #     },
-    #     "hparm": {
-    #         "threshold": args.th,
-    #         "min_support": args.min_sup,
-    #         "min_confidence": args.min_conf,
-    #         "k1": None if args.bm25 == False else args.k1
-    #     },
-    #     "words removed by Okapi BM25 / TF-IDF": {
-    #         "The number of words": f"{min(args.max_for_removed_words, len(removed_words))}/{len(removed_words)}",
-    #         "list": removed_words[:args.max_for_removed_words]
-    #     },
-    #     "entities": {
-    #         "commentso": args.m,
-    #         "The number of entities": f"{min(args.max_output, len(filtered_output))}/{len(filtered_output)}",
-    #         "list": get_sorted_random_list(filtered_output, args.max_output), # 旧filtered_output[:args.max_output]
-    #     }
-    # }
-
-    # Produciton
-    data = {
-        "preprocess": {
-            "Remove stop words": args.rm_stopwords,
-            "Lemmatize": args.lemmatize,
-            "Remove single character": args.rm_single_char,
-            "Remove non noun and verb": args.rm_non_noun_verb,
-            "Remove non noun": args.rm_non_noun,
-            "Remove dupulicates": args.rm_duplicates,
-            "TF-IDF": args.tfidf,
-            "Okapi BM25": args.bm25
-        },
-        "hparms": {
-            "threshold": args.th,
-            "min_support": args.min_sup,
-            "min_confidence": args.min_conf,
-            "k1": None if args.bm25 == False else args.k1
-        },
-        "words removed by Okapi BM25 / TF-IDF": {
-            "The number of words": len(removed_words),
-            "list": removed_words
-        },
-        "entities": {
-            "comments": args.m,
-            "The number of entities": len(filtered_output),
-            "list": sorted_output
+        preprocessed_data['analytics'] = {
+            'category': self._count_elements(category_list),
+            'entities_num': {k: v for k, v in sorted(self._count_elements(entities_num_list).items(), key=lambda item: int(item[0]))}
         }
-    }
-    if args.no_save:
-        save_entities(data, args.out_dir, file_name=args.json_file_name)
+        fp_growth_keyword_groups['category'] = self._count_elements(category_list)
+        fp_growth_keyword_groups['data'][0]['entities']['entities_num']['distribution'] = {k: v for k, v in sorted(self._count_elements(entities_num_list).items(), key=lambda item: int(item[0]))}
 
-    # Print
-    print(data)
+        '''
+        docs_info prop
+        '''
+        for entities in entities_list:
+            docs_info_prop = {'IDs': [], 'docs': []}
+            my_entity_ID = entities['ID']
 
+            for doc in preprocessed_data['data']:
+                if my_entity_ID in doc['entities_info']['IDs']:
+                    """
+                    今回の場合は、documents.json時に、documentのIDをdateが新しい順（降順）となってしまっているため、
+                    entities.jsonにする際に、entity毎のdocumentを昇順に並べ替える。
+                    """
+                    docs_info_prop['IDs'].insert(0, doc['ID'])
+                    docs_info_prop['docs'].insert(0, doc)
 
-if __name__ == '__main__':
-    main()
+            # validation
+            if entities['freq'] != len(docs_info_prop['IDs']):
+                sys.exit('数があっていません！')
+
+            entities['docs_info'] = docs_info_prop
+
+        # Set
+        self.keyword_groups = fp_growth_keyword_groups
+
+    def get_fp_growth_keyword_groups(self):
+        return self.fp_growth_keyword_groups
+
+    def get_keyword_groups(self):
+        return self.keyword_groups
