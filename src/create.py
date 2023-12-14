@@ -9,8 +9,10 @@ from argparse import ArgumentParser
 from create_dataset.preprocess.preprocess import Preprocessor
 from create_dataset.keyword_groups.get_keyword_groups import KeywordGroupsGetter
 from create_dataset.timeline.generate_multiple_timelines import MultipleTimelineGenerator
+from create_dataset.fake_news.add_fake_news import FakeNewsGenerater, FakeNewsSetter
 
 from create_dataset.type.entities import Entities
+from create_dataset.type.no_fake_timelines import NoFakeTimeline
 
 #Output to json formatted data
 def save_dataset(data: dict, out_dir: str, file_name: str):
@@ -29,7 +31,7 @@ def main():
     '''
     parser.add_argument('--raw_file_path', default='/mnt/mint/hara/datasets/news_category_dataset/raw/News_Category_Dataset_v3.json')
     parser.add_argument('--out_dir', default='/mnt/mint/hara/datasets/news_category_dataset/test')
-    parser.add_argument('--file_name', default='data')
+    parser.add_argument('--dataset_file_name', default='fake_news_dataset')
     '''
     For Preprocess
     '''
@@ -78,32 +80,46 @@ def main():
     parser.add_argument('--th_l', default=0.15, type=float, help='Threshold for rouge-l')
     parser.add_argument('--th_2_rate', default=1.1, type=float, help='Threshold for the rate of rouge-2')
     parser.add_argument('--th_2_diff', default=0.007, type=float, help='Threshold for the difference of rouge-2')
+    '''
+    For fake news
+    '''
+    parser.add_argument('--no_fake_timelines_path', default='/mnt/mint/hara/datasets/news_category_dataset/clustering/v1/no_fake_timelines_diff7')
+    parser.add_argument('--temp_for_fake_news', default=0.8, type=float)
+    parser.add_argument('--setting', default='none', choices=FakeNewsSetter.get_choices())
 
     args = parser.parse_args()
 
-    # preprocessor = Preprocessor(args.raw_file_path, args.start_year, args.end_year)
-    # preprocessed_data = preprocessor.get_preprocessed_data()
-    # save_dataset(preprocessed_data, args.out_dir, 'preprocessed_data')
+    preprocessor = Preprocessor(args.raw_file_path, args.start_year, args.end_year)
+    preprocessed_data = preprocessor.get_preprocessed_data()
+    save_dataset(preprocessed_data, args.out_dir, 'preprocessed_data')
 
     with open('/mnt/mint/hara/datasets/news_category_dataset/test/data.json', 'r') as F:
         preprocessed_data = json.load(F)
 
-    # kgg = KeywordGroupsGetter(
-    #     preprocessed_data, args.th, args.min_sup, args.min_conf, args.k1,
-    #     args.rm_stopwords, args.lemmatize, args.rm_single_char, args.rm_non_noun_verb, args.rm_non_noun, args.rm_duplicates, args.tfidf, args.bm25,
-    #     args.m, args.max_for_removed_words, args.table_show
-    # )
-    # keyword_groups_data: Entities = kgg.get_keyword_groups()
-    # save_dataset(keyword_groups_data, args.out_dir, 'keyword_groups')
+    kgg = KeywordGroupsGetter(
+        preprocessed_data, args.th, args.min_sup, args.min_conf, args.k1,
+        args.rm_stopwords, args.lemmatize, args.rm_single_char, args.rm_non_noun_verb, args.rm_non_noun, args.rm_duplicates, args.tfidf, args.bm25,
+        args.m, args.max_for_removed_words, args.table_show
+    )
+    keyword_groups_data: Entities = kgg.get_keyword_groups()
+    save_dataset(keyword_groups_data, args.out_dir, 'new_keyword_groups')
 
-    with open('/mnt/mint/hara/datasets/news_category_dataset/test/keyword_groups.json', 'r') as F:
+    with open('/mnt/mint/hara/datasets/news_category_dataset/test/new_keyword_groups.json', 'r') as F:
         keyword_groups_data: Entities = json.load(F)
 
     mtg = MultipleTimelineGenerator(keyword_groups_data, args.model_name, args.temp, args.judgement, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
     mtg.set_max_reexe_num(args.max_reexe_num)
     mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, rouge_used=True)
-    mtg.set_file_to_save(json_file_name='timeline', out_dir=args.out_dir)
+    mtg.set_file_to_save(json_file_name='new_timeline', out_dir=args.out_dir)
     mtg.generate_multiple_timelines()
+
+    with open(args.no_fake_timelines_path, 'r') as F:
+        no_fake_timelines: NoFakeTimeline = json.load(F)
+
+    fng = FakeNewsGenerater(no_fake_timelines, args.setting)
+    fng.set_gpt_for_fake_news(args.model_name, args.temp_for_fake_news)
+    fng.set_file_to_save(args.out_dir, args.dataset_file_name)
+    fng.generate_fake_news_timelines()
 
 if __name__ == '__main__':
     main()
