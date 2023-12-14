@@ -2,7 +2,7 @@ import os
 import openai
 import json
 
-from typing import Tuple
+from typing import Tuple, Union
 
 from create_dataset.type.entities import EntityData
 from create_dataset.type.no_fake_timelines import Doc
@@ -256,7 +256,7 @@ class GPTResponseGetter:
                 fake_news, remarks = function_response
                 return fake_news, remarks
 
-    def format_fake_news(self, headline, short_description, date, content, remarks=None) -> Tuple[DocForDataset, str | None]:
+    def format_fake_news(self, headline, short_description, date, content, remarks=None) -> Tuple[DocForDataset, Union[str, None]]:
         fake_news: DocForDataset = {
             'ID': -1,
             'is_fake': True,
@@ -296,7 +296,7 @@ class GPTResponseGetter:
                         'properties': {
                             'document_id': {'type': 'integer', 'description': 'document ID of the original document before replacement.'},
                             'headline': {'type': 'string', 'description': 'headline of the original document before replacement.'},
-                            'short_description': {'type': 'string', 'description': 'short_description of the original document before replacement.'},
+                            # 'short_description': {'type': 'string', 'description': 'short_description of the original document before replacement.'},
                         }
                     }
                 },
