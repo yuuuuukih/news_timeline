@@ -26,6 +26,9 @@ def retry_decorator(max_error_count=10, retry_delay=1): # Loop with a maximum of
                     print("ValueError occurred. Re-running the function.")
                     print(f"ValueError: {e}")
                     error_count += 1
+                except AttributeError as e: # For when other functions are called in function calling.
+                    print(f"AttributeError occurred: {e}. Re-running the function.")
+                    error_count += 1
                 except TypeError as e: # For when other functions are called in function calling.
                     print("TypeError occurred. Re-running the function.")
                     print(f"TypeError: {e}")
