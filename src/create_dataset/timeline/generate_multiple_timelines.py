@@ -1,8 +1,6 @@
 import os
 import json
 import datetime
-from collections import Counter
-from argparse import ArgumentParser
 
 from create_dataset.timeline.set_timeline import TimelineSetter
 
@@ -12,6 +10,7 @@ from create_dataset.type.entities import Entities
 from create_dataset.type.no_fake_timelines import EntityTimelineData, NoFakeTimeline
 from typing import Literal
 
+from create_dataset.utils.update_occurrences import update_occurrences
 
 class MultipleTimelineGenerator(TimelineSetter):
     def __init__(self, entities_data: Entities, model_name: str, temp: float, judgement: Literal['diff', 'rate', 'value'], min_docs_num_in_1timeline=8, max_docs_num_in_1timeline=10, top_tl=0.5, start_entity_id=0):
@@ -80,9 +79,8 @@ class MultipleTimelineGenerator(TimelineSetter):
         no_fake_timelines['data'].append(timeline_data)
         no_fake_timelines['entities_num'] = len(no_fake_timelines['data'])
 
-        count_occurrences = lambda list: dict(sorted(Counter(list).items(), key=lambda item: item[0]))
-        no_fake_timelines['analytics']['docs_num_in_1_timeline'] = self.add_dicts(no_fake_timelines['analytics']['docs_num_in_1_timeline'], count_occurrences(self.analytics_docs_num))
-        no_fake_timelines['analytics']['re_execution_num'] = self.add_dicts(no_fake_timelines['analytics']['re_execution_num'], count_occurrences(self.analytics_reexe_num))
+        no_fake_timelines['analytics']['docs_num_in_1_timeline'] = update_occurrences(no_fake_timelines['analytics']['docs_num_in_1_timeline'], self.analytics_docs_num)
+        no_fake_timelines['analytics']['re_execution_num'] = update_occurrences(no_fake_timelines['analytics']['re_execution_num'], self.analytics_reexe_num)
         no_fake_timelines['analytics']['no_timeline_entity_id'].extend(self.no_timeline_entity_id)
         # save the json file.
         with open(file_path, 'w', encoding='utf-8') as F:
@@ -92,16 +90,3 @@ class MultipleTimelineGenerator(TimelineSetter):
     def set_file_to_save(self, json_file_name, out_dir):
         self.__json_file_name = json_file_name
         self.__out_dir = out_dir
-
-    def add_dicts(self, dict1, dict2):
-        result = dict1.copy()
-        for key, value in dict2.items():
-            str_key = str(key)
-            if str_key in result.keys():
-                result[str_key] += value
-            else:
-                result[str_key] = value
-
-        sorted_result = {k: result[k] for k in sorted(result, key=int)}
-        return sorted_result
-
