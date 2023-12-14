@@ -87,7 +87,12 @@ class KeywordGroupsGetter:
             if len(entities['items']) >= 2:
                 filtered_output.append(entities)
 
-        sorted_output = sorted(filtered_output, key=lambda x: x['freq'])
+        # 1. Sort the words in alphabetical order
+        for entities in filtered_output:
+            entities['items'].sort()
+        # 2. Sort firstly in the order of words, and then in the order of frequency
+        sorted_output = sorted(filtered_output, key=lambda x: (x['freq'], x['items']))
+        # 3. Assign entity_id
         for i, entities in enumerate(sorted_output):
             entities['ID'] = i
 
