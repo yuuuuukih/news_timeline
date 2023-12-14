@@ -6,6 +6,7 @@ from typing import Tuple
 
 from create_dataset.type.entities import EntityData
 from create_dataset.type.no_fake_timelines import Doc
+from create_dataset.type.fake_news_dataset import DocForDataset
 
 class GPTResponseGetter:
     '''
@@ -255,8 +256,9 @@ class GPTResponseGetter:
                 fake_news, remarks = function_response
                 return fake_news, remarks
 
-    def format_fake_news(self, headline, short_description, date, content, remarks=None):
-        fake_news = {
+    def format_fake_news(self, headline, short_description, date, content, remarks=None) -> Tuple[DocForDataset, str | None]:
+        fake_news: DocForDataset = {
+            'ID': -1,
             'is_fake': True,
             'headline': headline,
             'short_description': short_description,
