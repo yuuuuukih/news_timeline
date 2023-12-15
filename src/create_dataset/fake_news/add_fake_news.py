@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 
 from create_dataset.timeline.get_gpt_response import GPTResponseGetter
 from create_dataset.utils.retry_decorator import retry_decorator
+from create_dataset.utils.measure_exe_time import measure_exe_time
 
 from create_dataset.type.no_fake_timelines import NoFakeTimeline, TimelineData
 from create_dataset.type.fake_news_dataset import FakeNewsDataset, TimelineDataInfo, DocForDataset
@@ -121,7 +122,7 @@ class FakeNewsGenerater(GPTResponseGetter):
         self.__model_name = model_name
         self.__temp = temp
 
-    @retry_decorator(max_error_count=30, retry_delay=1)
+    @retry_decorator(max_error_count=50, retry_delay=1)
     def get_fake_news(self, entity_items: list[str], timeline_data: TimelineData) -> Tuple[DocForDataset, Union[str, None]]:
         system_content, user_content = self.get_prompts(entity_items, timeline_data)
         messages = [
@@ -133,6 +134,7 @@ class FakeNewsGenerater(GPTResponseGetter):
 
         return fake_news, remarks
 
+    @measure_exe_time
     def generate_fake_news_timelines(self):
         for i, entity_info in enumerate(self.data):
             entity_id = entity_info['entity_ID']
