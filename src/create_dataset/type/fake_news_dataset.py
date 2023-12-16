@@ -12,7 +12,6 @@ class DocForDataset(TypedDict):
 class TimelineDataInfo(TypedDict):
     entity_id: int
     entity_items: list[str]
-    setting: Literal['none', 'rep0', 'rep1','rep2','rep3', 'ins0', 'ins1', 'ins2']
     timeline: list[DocForDataset]
 
 class NoFakeTimelinesInfo(TypedDict):
@@ -23,6 +22,7 @@ class NoFakeTimelinesInfo(TypedDict):
 class FakeNewsDataset(TypedDict):
     name: str
     description: str
+    setting: Literal['none', 'rep0', 'rep1','rep2','rep3', 'ins0', 'ins1', 'ins2']
     docs_num_in_1_timeline: dict[str, int]
     no_fake_timelines_info: NoFakeTimelinesInfo
     data: list[TimelineDataInfo]

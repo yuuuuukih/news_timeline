@@ -86,14 +86,15 @@ class FakeNewsGenerater(GPTResponseGetter):
         user_content += (
             "# CONSTRAINTS\n"
             "- It needs to contain headline, short_description, date (YYYY-MM-DD), and content properties.\n"
-            "- In a step-by-step manner, first generate the content and date of fake news, and then generate the headline and short description."
-            "- Additionally, explain why you generate such fake news and which parts of the fake news meet the following constraints"
+            "- In a step-by-step manner, first generate the content and date of fake news, and then generate the headline and short description.\n"
+            "The number of characters in the content should be sufficiently large.\n"
+            "- Additionally, explain why you generate such fake news and which parts of the fake news meet the following constraints.\n"
             f"- The date of the fake news must be within a period that is later than the oldest date among the {docs_num} documents and earlier than the newest date.\n"
         )
         if self.setting_str == 'rep':
             user_content += (
                 f"- Please generate fake news by replacing a suitable one among the {docs_num} documents included in the timeline I have entered.\n"
-                f"- Please generate the document id and headline of the document to be replaced as remarks."
+                f"- Please generate the document id and headline of the document to be replaced as remarks.\n"
             )
         elif self.setting_str == 'ins':
             user_content += f"- Please generate fake news to be inserted in the most suitable location in the timeline I have entered.\n"
@@ -183,7 +184,6 @@ class FakeNewsGenerater(GPTResponseGetter):
                 new_timeline_info: TimelineDataInfo = {
                     'entity_id': entity_id,
                     'entity_items': entity_items,
-                    'setting': self.setting,
                     'timeline': new_timeline
                 }
 
@@ -210,6 +210,7 @@ class FakeNewsGenerater(GPTResponseGetter):
             fake_news_dataset: FakeNewsDataset = {
                 'name': self.__json_file_name,
                 'description': 'Timeline dataset with fake news.',
+                'setting': self.setting,
                 'docs_num_in_1_timeline': {},
                 'no_fake_timelines_info': {
                     'entities_num': self.no_fake_timelines['entities_num'],
@@ -220,7 +221,7 @@ class FakeNewsGenerater(GPTResponseGetter):
             }
         # Update
         fake_news_dataset['data'].append(new_timeline_info)
-        fake_news_dataset['docs_num_in_1_timeline'] = update_occurrences(fake_news_dataset['docs_num_in_1_timeline'], [len(new_timeline_info)])
+        fake_news_dataset['docs_num_in_1_timeline'] = update_occurrences(fake_news_dataset['docs_num_in_1_timeline'], [len(new_timeline_info['timeline'])])
 
         # save the json file.
         with open(file_path, 'w', encoding='utf-8') as F:
