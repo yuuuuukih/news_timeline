@@ -104,7 +104,7 @@ class GPTResponseGetter:
             model=model_name,
             temperature=temp,
             messages=messages,
-            request_timeout=60,
+            request_timeout=180,
             functions=[
                 self._format_timeline_info(),
             ],
@@ -217,7 +217,7 @@ class GPTResponseGetter:
             model=model_name,
             temperature=temp,
             messages=messages,
-            request_timeout=60,
+            request_timeout=180,
             functions=[
                 self._format_fake_news_info(),
             ],
