@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from create_dataset.type.no_fake_timelines import NoFakeTimeline, EntityTimelineData
 
-class TimelinesAnalyzer:
+class TimelinesSplitter:
     def __init__(self, timelines_data: list[EntityTimelineData]) -> None:
         self.G = nx.Graph()
         self.timelines_data = timelines_data
@@ -126,10 +126,10 @@ def main():
     with open(args.file_path, 'r') as F:
         timelines: NoFakeTimeline = json.load(F)
 
-    # ta = TimelinesAnalyzer(timelines['data'])
+    # ta = TimelinesSplitter(timelines['data'])
     # ta.show()
-    # TimelinesAnalyzer.minimum_cut(timelines['data'])
-    communities = TimelinesAnalyzer.community(timelines['data'], n=args.n)
+    # TimelinesSplitter.minimum_cut(timelines['data'])
+    communities = TimelinesSplitter.community(timelines['data'], n=args.n)
     # print(communities)
     # for i in range(len(communities)):
     #         print(f"{i+1}. {len(communities[i])}")
