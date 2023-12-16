@@ -3,14 +3,14 @@ import sys
 import json
 import re
 from typing import Tuple, Union, Literal
-from argparse import ArgumentParser
 
 from create_dataset.timeline.get_gpt_response import GPTResponseGetter
 from create_dataset.utils.retry_decorator import retry_decorator
 from create_dataset.utils.measure_exe_time import measure_exe_time
 
-from create_dataset.type.no_fake_timelines import NoFakeTimeline, TimelineData
+from create_dataset.type.no_fake_timelines import TimelineData
 from create_dataset.type.fake_news_dataset import FakeNewsDataset, TimelineDataInfo, DocForDataset
+from create_dataset.type.split_dataset import SplitDataset
 
 from create_dataset.utils.update_occurrences import update_occurrences
 
@@ -46,7 +46,7 @@ class FakeNewsSetter:
             return setting.rstrip('0123456789'), setting.lstrip('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') # ex: ('rep', '0')
 
 class FakeNewsGenerater(GPTResponseGetter):
-    def __init__(self, no_fake_timelines: NoFakeTimeline, setting: Literal['none', 'rep0', 'rep1','rep2','rep3', 'ins0', 'ins1', 'ins2']) -> None:
+    def __init__(self, no_fake_timelines: SplitDataset, setting: Literal['none', 'rep0', 'rep1','rep2','rep3', 'ins0', 'ins1', 'ins2']) -> None:
         self.no_fake_timelines = no_fake_timelines
         self.data = no_fake_timelines['data']
         # self.data = no_fake_timelines['data'][238:239]
@@ -214,8 +214,9 @@ class FakeNewsGenerater(GPTResponseGetter):
                 'docs_num_in_1_timeline': {},
                 'no_fake_timelines_info': {
                     'entities_num': self.no_fake_timelines['entities_num'],
+                    'timeline_num': self.no_fake_timelines['timelines_num'],
+                    'split_n': self.no_fake_timelines['split_n'],
                     'setting': self.no_fake_timelines['setting'],
-                    'analytics': self.no_fake_timelines['analytics']
                 },
                 'data': []
             }
