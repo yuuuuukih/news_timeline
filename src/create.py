@@ -34,7 +34,6 @@ def main():
     '''
     parser.add_argument('--raw_file_path', default='/mnt/mint/hara/datasets/news_category_dataset/raw/News_Category_Dataset_v3.json')
     parser.add_argument('--root_dir', default='/mnt/mint/hara/datasets/news_category_dataset/dataset')
-    # parser.add_argument('--dataset_file_name', default='fake_news_dataset')
     '''
     For Preprocess
     '''
@@ -60,7 +59,6 @@ def main():
     # Comments for conditions
     parser.add_argument('--m', default='items >= 2', type=str)
     # Basically fixed
-    # parser.add_argument('--max_output', default=40, type=int)
     parser.add_argument('--max_for_removed_words', default=20, type=int)
     # Others
     parser.add_argument('--table_show', default=False, action='store_true')
@@ -72,7 +70,6 @@ def main():
     parser.add_argument('--min_docs', default=4, type=int, help='min_docs_num_in_1timeline')
     parser.add_argument('--max_docs', default=10, type=int, help='max_docs_num_in_1timeline')
     parser.add_argument('--top_tl', default=0.5, type=float, help='top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.')
-    # parser.add_argument('--json_file_name', default='no_fake_timelines')
     parser.add_argument('--max_reexe_num', default=2, type=int)
     parser.add_argument('--start_entity_id', default=0, type=int)
     # For rouge score
@@ -86,66 +83,64 @@ def main():
     '''
     For split dataset
     '''
-    # parser.add_argument('--root_dir', default='/mnt/mint/hara/datasets/news_category_dataset/dataset/')
     parser.add_argument('--diff', default=7, type=int)
-    parser.add_argument('--n', default=0, type=int)
-    # parser.add_argument('--min_docs', default=4, type=int)
+    parser.add_argument('--split_n', default=1, type=int)
     parser.add_argument('--do_not_save_split', default=True, action='store_false')
     '''
     For fake news
     '''
-    parser.add_argument('--no_fake_timelines_path', default='/mnt/mint/hara/datasets/news_category_dataset/test/timeline_diff7.json')
     parser.add_argument('--temp_for_fake_news', default=0.8, type=float)
     parser.add_argument('--setting', default='none', choices=FakeNewsSetter.get_choices())
 
     args = parser.parse_args()
 
+    # Set the output directory
     out_dir = os.path.join(args.root_dir, f"diff{args.diff}")
 
     '''
     Preprocess
     '''
-    # preprocessor = Preprocessor(args.raw_file_path, args.start_year, args.end_year)
-    # preprocessed_data = preprocessor.get_preprocessed_data()
-    # save_dataset(preprocessed_data, args.root_dir, 'preprocessed_data')
+    preprocessor = Preprocessor(args.raw_file_path, args.start_year, args.end_year)
+    preprocessed_data = preprocessor.get_preprocessed_data()
+    save_dataset(preprocessed_data, args.root_dir, 'preprocessed_data')
 
-    with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/preprocessed_data.json', 'r') as F:
-        preprocessed_data = json.load(F)
+    # with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/preprocessed_data.json', 'r') as F:
+    #     preprocessed_data = json.load(F)
 
     '''
     Get keyword groups
     '''
-    # kgg = KeywordGroupsGetter(
-    #     preprocessed_data, args.th, args.min_sup, args.min_conf, args.k1,
-    #     args.rm_stopwords, args.lemmatize, args.rm_single_char, args.rm_non_noun_verb, args.rm_non_noun, args.rm_duplicates, args.tfidf, args.bm25,
-    #     args.m, args.max_for_removed_words, args.table_show
-    # )
-    # keyword_groups_data: Entities = kgg.get_keyword_groups()
-    # save_dataset(keyword_groups_data, args.root_dir, 'keyword_groups')
+    kgg = KeywordGroupsGetter(
+        preprocessed_data, args.th, args.min_sup, args.min_conf, args.k1,
+        args.rm_stopwords, args.lemmatize, args.rm_single_char, args.rm_non_noun_verb, args.rm_non_noun, args.rm_duplicates, args.tfidf, args.bm25,
+        args.m, args.max_for_removed_words, args.table_show
+    )
+    keyword_groups_data: Entities = kgg.get_keyword_groups()
+    save_dataset(keyword_groups_data, args.root_dir, 'keyword_groups')
 
-    with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/keyword_groups.json', 'r') as F:
-        keyword_groups_data: Entities = json.load(F)
+    # with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/keyword_groups.json', 'r') as F:
+    #     keyword_groups_data: Entities = json.load(F)
 
     '''
     Generate timelines
     '''
-    # mtg = MultipleTimelineGenerator(keyword_groups_data, args.model_name, args.temp, args.judgement, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
-    # mtg.set_max_reexe_num(args.max_reexe_num)
-    # mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, rouge_used=True)
-    # mtg.set_file_to_save(json_file_name='timeline_diff6', out_dir=out_dir)
-    # mtg.generate_multiple_timelines()
+    mtg = MultipleTimelineGenerator(keyword_groups_data, args.model_name, args.temp, args.judgement, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
+    mtg.set_max_reexe_num(args.max_reexe_num)
+    mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, rouge_used=True)
+    mtg.set_file_to_save(json_file_name='timeline_diff6', out_dir=out_dir)
+    mtg.generate_multiple_timelines()
 
     '''
     Split dataset
     '''
-    # with open(os.path.join(out_dir, f"timeline_diff{args.diff}.json"), 'r') as F:
-    #     timelines: NoFakeTimeline = json.load(F)
+    with open(os.path.join(out_dir, f"timeline_diff{args.diff}.json"), 'r') as F:
+        timelines: NoFakeTimeline = json.load(F)
 
-    # ts = TimelinesSplitter(timelines)
-    # ts.set_split_n(args.n)
-    # communities = ts.community()
-    # com_info = ts.get_community_info(communities)
-    # ts.get_split_dataset(com_info, out_dir, args.diff, args.min_docs, args.do_not_save_split)
+    ts = TimelinesSplitter(timelines)
+    ts.set_split_n(args.split_n)
+    communities = ts.community()
+    com_info = ts.get_community_info(communities)
+    ts.get_split_dataset(com_info, out_dir, args.diff, args.min_docs, args.do_not_save_split)
 
 
     '''
