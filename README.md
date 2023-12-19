@@ -12,7 +12,7 @@ The project is structured as follows:
     - `preprocess/`: Scripts for preprocessing the dataset.
     - `keyword_groups/`: Scripts for grouping keywords.
     - `timeline/`: Scripts for creating the timeline.
-    - `split/`: Scripts for spliting the timeline into train, dev, and test.
+    - `split/`: Scripts for spliting the timeline into train, val, and test.
     - `type/`: Scripts for original type.
     - `utils/`: Scripts for useful function (e.g., decorator).
 - `others/`: Contains not important scripts.
@@ -28,4 +28,4 @@ The project is structured as follows:
    ```
 4. Run the `create_dataset.sh` script in the `bin/` directory to create the timeline-aware fake news dataset.
 
-Please note that this project is still under development and the structure and usage may change in the future.
+[!NOTE] This project is still under development and the structure and usage may change in the future.

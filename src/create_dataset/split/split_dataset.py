@@ -147,24 +147,24 @@ class TimelinesSplitter:
         return com_info
 
     # 良いアルゴリズムを実装できなかったため、best_split_pattern_com_idをこちらが定数として定義する。
-    def _get_best_split_pattern(self, com_info: ComInfo, diff: int) -> dict[Literal['train', 'dev', 'test'], list[int]]:
+    def _get_best_split_pattern(self, com_info: ComInfo, diff: int) -> dict[Literal['train', 'val', 'test'], list[int]]:
         com_ids = [com['com_id'] for com in com_info]
         if diff == 7:
             com_ids_for_train = [1]
-            com_ids_for_dev = [0]
-            com_ids_for_test = list(set(com_ids) - set(com_ids_for_train) - set(com_ids_for_dev))
+            com_ids_for_val = [0]
+            com_ids_for_test = list(set(com_ids) - set(com_ids_for_train) - set(com_ids_for_val))
         if diff == 6:
             com_ids_for_train = [1]
-            com_ids_for_dev = [2, 3] if self.n == 1 else [3, 4] if self.n == 2 else [4, 5]
-            com_ids_for_test = list(set(com_ids) - set(com_ids_for_train) - set(com_ids_for_dev))
+            com_ids_for_val = [2, 3] if self.n == 1 else [3, 4] if self.n == 2 else [4, 5]
+            com_ids_for_test = list(set(com_ids) - set(com_ids_for_train) - set(com_ids_for_val))
         best_split_pattern_com_id = {
             'train': com_ids_for_train,
-            'dev': com_ids_for_dev,
+            'val': com_ids_for_val,
             'test': com_ids_for_test
         }
         return best_split_pattern_com_id
 
-    def _get_dataset_for_what(self, ent_ids: dict[str, list[int]], what=Literal['train', 'dev', 'test']) -> SplitDataset:
+    def _get_dataset_for_what(self, ent_ids: dict[str, list[int]], what=Literal['train', 'val', 'test']) -> SplitDataset:
         ent_ids_for_what = ent_ids[what]
         what_json: SplitDataset = {
             'name': f"{what}_dataset of {self.timelines['name']}",
@@ -239,16 +239,16 @@ class TimelinesSplitter:
 
         ent_ids = {
             'train': [],
-            'dev': [],
+            'val': [],
             'test': []
         }
         docs_ids = {
             'train': [],
-            'dev': [],
+            'val': [],
             'test': []
         }
-        # Classify entity_id and docs_id into train, dev, and test
-        for what in ['train', 'dev', 'test']:
+        # Classify entity_id and docs_id into train, val, and test
+        for what in ['train', 'val', 'test']:
             com_ids_for_what = best_split_pattern_com_id[what]
             ent_ids_for_what = ent_ids[what]
             docs_ids_for_what = docs_ids[what]
@@ -260,33 +260,33 @@ class TimelinesSplitter:
                         break
 
         # Get the common documents
-        intersection_docs_ids_all = list(set(docs_ids['train']).intersection(set(docs_ids['dev'])).intersection(set(docs_ids['test'])))
-        intersection_docs_ids_train_dev = list(set(docs_ids['train']).intersection(set(docs_ids['dev'])) - set(intersection_docs_ids_all))
+        intersection_docs_ids_all = list(set(docs_ids['train']).intersection(set(docs_ids['val'])).intersection(set(docs_ids['test'])))
+        intersection_docs_ids_train_val = list(set(docs_ids['train']).intersection(set(docs_ids['val'])) - set(intersection_docs_ids_all))
         intersection_docs_ids_train_test = list(set(docs_ids['train']).intersection(set(docs_ids['test'])) - set(intersection_docs_ids_all))
-        intersection_docs_ids_dev_test = list(set(docs_ids['dev']).intersection(set(docs_ids['test'])) - set(intersection_docs_ids_all))
-        # print(f'intersection_docs_ids_train_dev: {intersection_docs_ids_train_dev}')
+        intersection_docs_ids_val_test = list(set(docs_ids['val']).intersection(set(docs_ids['test'])) - set(intersection_docs_ids_all))
+        # print(f'intersection_docs_ids_train_val: {intersection_docs_ids_train_val}')
         # print(f'intersection_docs_ids_train_test: {intersection_docs_ids_train_test}')
-        # print(f'intersection_docs_ids_dev_test: {intersection_docs_ids_dev_test}')
+        # print(f'intersection_docs_ids_val_test: {intersection_docs_ids_val_test}')
         # print(f'intersection_docs_ids_all: {intersection_docs_ids_all}')
         if len(intersection_docs_ids_all) != 0:
             sys.exit('Error: intersection_docs_ids_all is not empty.')
 
         train_json: SplitDataset = self._get_dataset_for_what(ent_ids, 'train')
-        dev_json: SplitDataset = self._get_dataset_for_what(ent_ids, 'dev')
+        val_json: SplitDataset = self._get_dataset_for_what(ent_ids, 'val')
         test_json: SplitDataset = self._get_dataset_for_what(ent_ids, 'test')
 
-        train_json, dev_json = self._delete_documents(intersection_docs_ids_train_dev, train_json, dev_json, min_docs)
+        train_json, val_json = self._delete_documents(intersection_docs_ids_train_val, train_json, val_json, min_docs)
         train_json, test_json = self._delete_documents(intersection_docs_ids_train_test, train_json, test_json, min_docs)
-        dev_json, test_json = self._delete_documents(intersection_docs_ids_dev_test, dev_json, test_json, min_docs)
+        val_json, test_json = self._delete_documents(intersection_docs_ids_val_test, val_json, test_json, min_docs)
 
         # Update entities_num and timelines_num
-        for what_json in [train_json, dev_json, test_json]:
+        for what_json in [train_json, val_json, test_json]:
             what_json['entities_num'] = len(what_json['data'])
             what_json['timelines_num'] = sum([entity_data['timeline_info']['timeline_num'] for entity_data in what_json['data']])
 
         # Save
         if save_flaf:
-            for what in ['train', 'dev', 'test']:
+            for what in ['train', 'val', 'test']:
                 with open(f"{out_dir}/{what}.json", 'w') as F:
                     json.dump(eval(f"{what}_json"), F, indent=4, ensure_ascii=False, separators=(',', ': '))
                     print(f"Data is saved to {what}.json")

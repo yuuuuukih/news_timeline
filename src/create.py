@@ -146,7 +146,7 @@ def main():
     '''
     Add fake news
     '''
-    for what in ['train', 'dev', 'test']:
+    for what in ['train', 'val', 'test']:
         with open(os.path.join(out_dir, f"{what}.json"), 'r') as F:
             no_fake_timelines: SplitDataset = json.load(F)
 
