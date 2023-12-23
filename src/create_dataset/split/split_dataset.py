@@ -6,19 +6,25 @@ import random
 import networkx as nx
 import matplotlib.pyplot as plt
 
+# import os
+# sys.path.append('../../')
+# from argparse import ArgumentParser
+
 from typing import Literal
 from create_dataset.type.no_fake_timelines import NoFakeTimeline, EntityTimelineData
 from create_dataset.type.split_dataset import SplitDataset, ComInfo
 
 
 class TimelinesSplitter:
-    def __init__(self, timelines: NoFakeTimeline) -> None:
+    def __init__(self, timelines: NoFakeTimeline, diff: int = 7) -> None:
         self.G = nx.Graph()
         self.timelines = timelines
         self.timelines_data: list[EntityTimelineData] = timelines['data']
         self.N = len(self.timelines_data)
 
         self.load(self.timelines_data)
+
+        self.diff = diff
 
     def get_node_name(self, entity: EntityTimelineData) -> str:
         return f"{entity['entity_ID']}"
@@ -83,7 +89,7 @@ class TimelinesSplitter:
         plt.figure(figsize=(10,10))
         pos = nx.spring_layout(self.G, k=0.2) # k=0.17, 0.2
         labels = nx.get_edge_attributes(self.G, 'weight')
-        title = f"Community Visualization of {len(communities)} communities with modularity of {modularity}"
+        title = f"Community Visualization of {len(communities)} communities with modularity of {modularity})"
         plt.title(title, fontsize=16)
         nx.draw(
             self.G,
@@ -96,7 +102,7 @@ class TimelinesSplitter:
         )
         nx.draw_networkx_edge_labels(self.G, pos, edge_labels=labels)
         plt.legend()
-        plt.savefig(f'community_{self.n}.jpg')
+        plt.savefig(f'community_{self.n}_diff{self.diff}.jpg')
 
         return communities
 
@@ -306,13 +312,16 @@ class TimelinesSplitter:
 #     with open(file_path, 'r') as F:
 #         timelines: NoFakeTimeline = json.load(F)
 
-    # ts = TimelinesSplitter(timelines)
-    # ta.show()
-    # TimelinesSplitter.minimum_cut(timelines['data'])
-    # ts.set_split_n(args.n)
-    # communities = ts.community()
-    # print(communities)
-    # com_info = ts.get_community_info(communities)
-    # ts.get_split_dataset(com_info, out_dir, args.diff, args.min_docs, args.do_not_save_split)
+#     ts = TimelinesSplitter(timelines, args.diff)
+#     # ta.show()
+#     # TimelinesSplitter.minimum_cut(timelines['data'])
+#     ts.set_split_n(args.n)
+#     communities = ts.community()
+#     print(communities)
+#     com_info = ts.get_community_info(communities)
+#     # ts.get_split_dataset(com_info, out_dir, args.diff, args.min_docs, args.do_not_save_split)
+
+# if __name__ == '__main__':
+#     main()
 
 # https://www.dogrow.net/python/blog47/
