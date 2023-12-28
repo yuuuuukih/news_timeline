@@ -48,13 +48,13 @@ class FakeNewsSetter:
 class FakeNewsGenerater(GPTResponseGetter):
     def __init__(self, no_fake_timelines: SplitDataset, setting: Literal['none', 'rep0', 'rep1','rep2','rep3', 'ins0', 'ins1', 'ins2']) -> None:
         self.no_fake_timelines = no_fake_timelines
-        self.data = no_fake_timelines['data']
-        # self.data = no_fake_timelines['data'][238:239]
+        # self.data = no_fake_timelines['data']
+        self.data = no_fake_timelines['data'][:5]
         self.m = len(self.data)
         self.setting = setting
         self.setting_str, self.setting_num = FakeNewsSetter.decode(setting)
 
-    def get_prompts(self, entity_items: list[str], timeline_data: TimelineData):
+    def get_prompts_for_fakenews(self, entity_items: list[str], timeline_data: TimelineData):
         docs_num, timeline = timeline_data['docs_num'], timeline_data['timeline']
         timeline = sorted(timeline, key=lambda x: x['date'])
 
@@ -69,7 +69,7 @@ class FakeNewsGenerater(GPTResponseGetter):
         user_content = (
             "# INSTRUCTIONS\n"
             f"Below are {docs_num} documents about {entity_items}. Each document contains time information (YYYY-MM-DD), forming a timeline.\n"
-            "Generate ONE fake news based on the following constraints and input documents.\n"
+            "Generate ONE fake news in about 200 words based on the following constraints and input documents.\n"
         )
 
         user_content += "# INPUT DOCUMENTS\n"
@@ -87,7 +87,6 @@ class FakeNewsGenerater(GPTResponseGetter):
             "# CONSTRAINTS\n"
             "- It needs to contain headline, short_description, date (YYYY-MM-DD), and content properties.\n"
             "- In a step-by-step manner, first generate the content and date of fake news, and then generate the headline and short description.\n"
-            "The number of characters in the content should be sufficiently large.\n"
             "- Additionally, explain why you generate such fake news and which parts of the fake news meet the following constraints.\n"
             f"- The date of the fake news must be within a period that is later than the oldest date among the {docs_num} documents and earlier than the newest date.\n"
         )
@@ -123,9 +122,9 @@ class FakeNewsGenerater(GPTResponseGetter):
         self.__model_name = model_name
         self.__temp = temp
 
-    @retry_decorator(max_error_count=50, retry_delay=1)
+    @retry_decorator(max_error_count=10, retry_delay=1)
     def get_fake_news(self, entity_items: list[str], timeline_data: TimelineData) -> Tuple[DocForDataset, Union[str, None]]:
-        system_content, user_content = self.get_prompts(entity_items, timeline_data)
+        system_content, user_content = self.get_prompts_for_fakenews(entity_items, timeline_data)
         messages = [
             {'role': 'system', 'content': system_content},
             {'role': 'user', 'content': user_content}
@@ -137,6 +136,9 @@ class FakeNewsGenerater(GPTResponseGetter):
 
     @measure_exe_time
     def generate_fake_news_timelines(self):
+
+        self.init_tokens_for_fakenews()
+
         for i, entity_info in enumerate(self.data):
             entity_id = entity_info['entity_ID']
             entity_items = entity_info['entity_items']
@@ -178,18 +180,22 @@ class FakeNewsGenerater(GPTResponseGetter):
                     else:
                         sys.exit('fake news generation error!')
 
-                new_timeline.append(fake_news)
-                new_timeline = sorted(new_timeline, key=lambda doc: doc['date'])
+                # new_timeline.append(fake_news)
+                # new_timeline = sorted(new_timeline, key=lambda doc: doc['date'])
+                self.len_of_fakenews.append(len(fake_news['content'].split()))
 
-                new_timeline_info: TimelineDataInfo = {
-                    'entity_id': entity_id,
-                    'entity_items': entity_items,
-                    'timeline': new_timeline
-                }
+                # new_timeline_info: TimelineDataInfo = {
+                #     'entity_id': entity_id,
+                #     'entity_items': entity_items,
+                #     'timeline': new_timeline
+                # }
 
-                self.save_fake_news_dataset(new_timeline_info)
+                # self.save_fake_news_dataset(new_timeline_info)
 
                 print(f"=== {j+1}/{timeline_num}. fake news DONE ===")
+
+        self.calc_ave_tokens_for_fakenews()
+        self.get_ave_len_of_fakenews()
 
     def is_valid_date_format(self, date_string):
         pattern = r'^\d{4}-\d{2}-\d{2}$'

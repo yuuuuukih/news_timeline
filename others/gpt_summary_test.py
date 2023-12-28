@@ -4,6 +4,10 @@ import openai
 import random
 from tqdm import tqdm
 
+token_list  = []
+completion_tokens_list = []
+prompt_tokens_list = []
+
 # Get gpt response
 def get_gpt_response_classic(messages: list, model_name='gpt-4', temp=1.0):
     openai.organization = os.environ['OPENAI_KUNLP']
@@ -16,6 +20,13 @@ def get_gpt_response_classic(messages: list, model_name='gpt-4', temp=1.0):
         request_timeout=180
     )
 
+    total_tokens = response['usage']['total_tokens']
+    completion_tokens = response['usage']['completion_tokens']
+    prompt_tokens = response['usage']['prompt_tokens']
+    token_list.append(total_tokens)
+    completion_tokens_list.append(completion_tokens)
+    prompt_tokens_list.append(prompt_tokens)
+
     response_message = response['choices'][0]['message']
     assistant_message = {'role': 'assistant', 'content': response_message['content']}
     messages.append(assistant_message)
@@ -23,7 +34,7 @@ def get_gpt_response_classic(messages: list, model_name='gpt-4', temp=1.0):
     return messages
 
 def get_prompts(example_src: str, tgt: int):
-    words_num = 190
+    words_num = 200
     if tgt == 1:
         user_content = f"Summarize the following news article in about {words_num} words without compromising the content.\n"
     elif tgt == 0:
@@ -35,7 +46,7 @@ def main():
     with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/diff7_rep1/base/train.json', 'r') as F:
         fake_news_dataset = json.load(F)
 
-    sample_num = 20
+    sample_num = 10
     split_string = '[SEP] content: '
     database = {
         'data_from': '/mnt/mint/hara/datasets/news_category_dataset/dataset/diff7_rep1/base/train.json',
@@ -72,7 +83,8 @@ def main():
     sampled_tgt_1 = random.sample(tgt_1_items, min(len(tgt_1_items), sample_num))
 
     # 最終的なリストの作成
-    sampled_data = sampled_tgt_0 + sampled_tgt_1
+    # sampled_data = sampled_tgt_0 + sampled_tgt_1
+    sampled_data = sampled_tgt_0
 
     for example in tqdm(sampled_data):
         example_src = example['src'].split(split_string)[1]
@@ -104,11 +116,14 @@ def main():
     print(f'raw: {ave(database["fake"]["raw"]["len"])}, summary: {ave(database["fake"]["summary"]["len"])}')
     print('real')
     print(f'raw: {ave(database["real"]["raw"]["len"])}, summary: {ave(database["real"]["summary"]["len"])}')
+    print(f'total tokens: {sum(token_list)/len(token_list)}')
+    print(f'completion tokens: {sum(completion_tokens_list)/len(completion_tokens_list)}')
+    print(f'prompt tokens: {sum(prompt_tokens_list)/len(prompt_tokens_list)}')
     print('==============================================================\n')
-    print(database)
+    # print(database)
 
-    with open(f'/mnt/mint/hara/datasets/news_category_dataset/test/summary_{sample_num}x2_190.json', 'w', encoding='utf-8') as F:
-        json.dump(database, F, indent=4, ensure_ascii=False, separators=(',', ': '))
+    # with open(f'/mnt/mint/hara/datasets/news_category_dataset/test/summary_{sample_num}x2_190.json', 'w', encoding='utf-8') as F:
+    #     json.dump(database, F, indent=4, ensure_ascii=False, separators=(',', ': '))
 
 if __name__ == '__main__':
     main()

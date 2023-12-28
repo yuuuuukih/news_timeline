@@ -8,6 +8,8 @@ from create_dataset.type.entities import EntityData
 from create_dataset.type.no_fake_timelines import Doc
 from create_dataset.type.fake_news_dataset import DocForDataset
 
+import functools
+
 class GPTResponseGetter:
     '''
     === All Tools ===
@@ -208,6 +210,40 @@ class GPTResponseGetter:
     '''
     === For function calling: format fake news ===
     '''
+    def init_tokens_for_fakenews(self) -> None:
+        print('init_tokens_for_fakenews')
+        self.__total_tokens_for_fakenews = []
+        self.__completion_tokens_for_fakenews = []
+        self.__prompt_tokens_for_fakenews = []
+        self.len_of_fakenews = []
+
+    def set_tokens_for_fakenews(self, total_tokens: int, completion_tokens: int, prompt_tokens: int) -> None:
+        self.__total_tokens_for_fakenews.append(total_tokens)
+        self.__completion_tokens_for_fakenews.append(completion_tokens)
+        self.__prompt_tokens_for_fakenews.append(prompt_tokens)
+
+    def calc_ave_tokens_for_fakenews(self) -> None:
+        self.__ave_total_tokens_for_fakenews = sum(self.__total_tokens_for_fakenews) / len(self.__total_tokens_for_fakenews) if len(self.__total_tokens_for_fakenews) > 0 else 0
+        self.__ave_completion_tokens_for_fakenews = sum(self.__completion_tokens_for_fakenews) / len(self.__completion_tokens_for_fakenews) if len(self.__completion_tokens_for_fakenews) > 0 else 0
+        self.__ave_prompt_tokens_for_fakenews = sum(self.__prompt_tokens_for_fakenews) / len(self.__prompt_tokens_for_fakenews) if len(self.__prompt_tokens_for_fakenews) > 0 else 0
+        print(f"ave_total_tokens_for_fakenews: {self.__ave_total_tokens_for_fakenews} len: {len(self.__total_tokens_for_fakenews)}")
+        print(f"ave_completion_tokens_for_fakenews: {self.__ave_completion_tokens_for_fakenews} len: {len(self.__completion_tokens_for_fakenews)}")
+        print(f"ave_prompt_tokens_for_fakenews: {self.__ave_prompt_tokens_for_fakenews} len: {len(self.__prompt_tokens_for_fakenews)}")
+
+    # def calc_tokens_for_fakenews_decorator(self, func):
+    #     functools.wraps(func)
+    #     def _wrapper(*args, **keywords):
+    #         self.init_tokens_for_fakenews()
+    #         print('here')
+    #         v = func(*args, **keywords)
+    #         self.calc_ave_tokens_for_fakenews()
+    #         self.get_ave_len_of_fakenews()
+    #         return v
+    #     return _wrapper
+
+    def get_ave_len_of_fakenews(self) -> None:
+        self.__ave_len_of_fakenews = sum(self.len_of_fakenews) / len(self.len_of_fakenews) if len(self.len_of_fakenews) > 0 else 0
+        print(f"ave_len_of_fakenews: {self.__ave_len_of_fakenews}")
     # Get gpt response
     def get_gpt_response_fake_news(self, messages: list, model_name='gpt-4', temp=1.0):
         openai.organization = os.environ['OPENAI_KUNLP']
@@ -222,6 +258,12 @@ class GPTResponseGetter:
                 self._format_fake_news_info(),
             ],
             function_call='auto'
+        )
+
+        self.set_tokens_for_fakenews(
+            total_tokens=response['usage']['total_tokens'],
+            completion_tokens=response['usage']['completion_tokens'],
+            prompt_tokens=response['usage']['prompt_tokens']
         )
 
         response_message = response['choices'][0]['message']

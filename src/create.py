@@ -100,9 +100,9 @@ def main():
     '''
     Preprocess
     '''
-    preprocessor = Preprocessor(args.raw_file_path, args.start_year, args.end_year)
-    preprocessed_data = preprocessor.get_preprocessed_data()
-    save_dataset(preprocessed_data, args.root_dir, 'preprocessed_data')
+    # preprocessor = Preprocessor(args.raw_file_path, args.start_year, args.end_year)
+    # preprocessed_data = preprocessor.get_preprocessed_data()
+    # save_dataset(preprocessed_data, args.root_dir, 'preprocessed_data')
 
     # with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/preprocessed_data.json', 'r') as F:
     #     preprocessed_data = json.load(F)
@@ -110,13 +110,13 @@ def main():
     '''
     Get keyword groups
     '''
-    kgg = KeywordGroupsGetter(
-        preprocessed_data, args.th, args.min_sup, args.min_conf, args.k1,
-        args.rm_stopwords, args.lemmatize, args.rm_single_char, args.rm_non_noun_verb, args.rm_non_noun, args.rm_duplicates, args.tfidf, args.bm25,
-        args.m, args.max_for_removed_words, args.table_show
-    )
-    keyword_groups_data: Entities = kgg.get_keyword_groups()
-    save_dataset(keyword_groups_data, args.root_dir, 'keyword_groups')
+    # kgg = KeywordGroupsGetter(
+    #     preprocessed_data, args.th, args.min_sup, args.min_conf, args.k1,
+    #     args.rm_stopwords, args.lemmatize, args.rm_single_char, args.rm_non_noun_verb, args.rm_non_noun, args.rm_duplicates, args.tfidf, args.bm25,
+    #     args.m, args.max_for_removed_words, args.table_show
+    # )
+    # keyword_groups_data: Entities = kgg.get_keyword_groups()
+    # save_dataset(keyword_groups_data, args.root_dir, 'keyword_groups')
 
     # with open('/mnt/mint/hara/datasets/news_category_dataset/dataset/keyword_groups.json', 'r') as F:
     #     keyword_groups_data: Entities = json.load(F)
@@ -124,29 +124,30 @@ def main():
     '''
     Generate timelines
     '''
-    mtg = MultipleTimelineGenerator(keyword_groups_data, args.model_name, args.temp, args.judgement, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
-    mtg.set_max_reexe_num(args.max_reexe_num)
-    mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, rouge_used=True)
-    mtg.set_file_to_save(json_file_name='timeline_diff6', out_dir=out_dir)
-    mtg.generate_multiple_timelines()
+    # mtg = MultipleTimelineGenerator(keyword_groups_data, args.model_name, args.temp, args.judgement, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
+    # mtg.set_max_reexe_num(args.max_reexe_num)
+    # mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, rouge_used=True)
+    # mtg.set_file_to_save(json_file_name='timeline_diff6', out_dir=out_dir)
+    # mtg.generate_multiple_timelines()
 
     '''
     Split dataset
     '''
-    with open(os.path.join(out_dir, f"timeline_diff{args.diff}.json"), 'r') as F:
-        timelines: NoFakeTimeline = json.load(F)
+    # with open(os.path.join(out_dir, f"timeline_diff{args.diff}.json"), 'r') as F:
+    #     timelines: NoFakeTimeline = json.load(F)
 
-    ts = TimelinesSplitter(timelines)
-    ts.set_split_n(args.split_n)
-    communities = ts.community()
-    com_info = ts.get_community_info(communities)
-    ts.get_split_dataset(com_info, out_dir, args.diff, args.min_docs, args.do_not_save_split)
+    # ts = TimelinesSplitter(timelines)
+    # ts.set_split_n(args.split_n)
+    # communities = ts.community()
+    # com_info = ts.get_community_info(communities)
+    # ts.get_split_dataset(com_info, out_dir, args.diff, args.min_docs, args.do_not_save_split)
 
 
     '''
     Add fake news
     '''
     for what in ['train', 'val', 'test']:
+        print(what)
         with open(os.path.join(out_dir, f"{what}.json"), 'r') as F:
             no_fake_timelines: SplitDataset = json.load(F)
 
