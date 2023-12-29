@@ -4,7 +4,7 @@ from sumeval.metrics.rouge import RougeCalculator
 import numpy as np
 import copy
 
-from create_dataset.timeline.get_gpt_response import GPTResponseGetter
+from create_dataset.gpt.get_gpt_response import GPTResponseGetter
 from create_dataset.utils.retry_decorator import retry_decorator
 
 from create_dataset.type.entities import EntityData, DocData
