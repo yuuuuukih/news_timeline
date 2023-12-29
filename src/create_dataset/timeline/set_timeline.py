@@ -4,14 +4,14 @@ from sumeval.metrics.rouge import RougeCalculator
 import numpy as np
 import copy
 
-from create_dataset.gpt.get_gpt_response import GPTResponseGetter
+from create_dataset.gpt.timeline_gpt import TimelineGPTResponseGetter
 from create_dataset.utils.retry_decorator import retry_decorator
 
 from create_dataset.type.entities import EntityData, DocData
 from create_dataset.type.no_fake_timelines import TimelineData, EntityTimelineData, Doc
 
 
-class TimelineSetter(GPTResponseGetter):
+class TimelineSetter(TimelineGPTResponseGetter):
     '''
     docs_num_in_1timeline: The number of documents contained in ONE timeline,
     top_tl: Number of timelines to be generated, relative to the number of timelines that can be generated.
@@ -468,7 +468,7 @@ class TimelineSetter(GPTResponseGetter):
     """
     @retry_decorator(max_error_count=10, retry_delay=1)
     def generate_story_and_timeline_without_rouge(self, entity_info: EntityData) -> TimelineData:
-        # setter for GPTResponseGetter
+        # setter for TimelineGPTResponseGetter
         self.set_entity_info(entity_info)
 
         # prompts
@@ -524,7 +524,7 @@ class TimelineSetter(GPTResponseGetter):
     """
     @retry_decorator(max_error_count=10, retry_delay=1)
     def generate_story_and_timeline_with_mutli_docs_rouge(self, entity_info: EntityData) -> TimelineData:
-        # setter for GPTResponseGetter
+        # setter for TimelineGPTResponseGetter
         self.set_entity_info(entity_info)
 
         # prompts
@@ -583,7 +583,7 @@ class TimelineSetter(GPTResponseGetter):
     """
     @retry_decorator(max_error_count=10, retry_delay=1)
     def generate_story_and_timeline_with_single_doc_rouge(self, entity_info: EntityData) -> TimelineData:
-        # setter for GPTResponseGetter
+        # setter for TimelineGPTResponseGetter
         self.set_entity_info(entity_info)
 
         # prompts
