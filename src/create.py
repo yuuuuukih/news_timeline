@@ -65,7 +65,7 @@ def main():
     '''
     For timeline
     '''
-    parser.add_argument('--model_name', default='gpt-4')
+    parser.add_argument('--model_name', default='gpt-4-1106-preview')
     parser.add_argument('--temp', default=0.8, type=float, help='Temperature for 1st response of GPT.')
     parser.add_argument('--min_docs', default=4, type=int, help='min_docs_num_in_1timeline')
     parser.add_argument('--max_docs', default=10, type=int, help='max_docs_num_in_1timeline')
