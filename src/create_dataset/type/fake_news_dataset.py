@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal
+from typing import TypedDict, Literal, Union
 from create_dataset.type.no_fake_timelines import Setting, Analytics
 
 class DocForDataset(TypedDict):
@@ -12,6 +12,7 @@ class DocForDataset(TypedDict):
 class TimelineDataInfo(TypedDict):
     entity_id: int
     entity_items: list[str]
+    replaced_doc: Union[DocForDataset, None]
     timeline: list[DocForDataset]
 
 class NoFakeTimelinesInfo(TypedDict):
