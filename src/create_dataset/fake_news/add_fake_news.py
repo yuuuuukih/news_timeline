@@ -49,8 +49,8 @@ class FakeNewsSetter:
 class FakeNewsGenerater(FakenewsGPTResponseGetter):
     def __init__(self, no_fake_timelines: SplitDataset, setting: Literal['none', 'rep0', 'rep1','rep2','rep3', 'ins0', 'ins1', 'ins2']) -> None:
         self.no_fake_timelines = no_fake_timelines
-        # self.data = no_fake_timelines['data']
-        self.data = no_fake_timelines['data'][0:1]
+        self.data = no_fake_timelines['data']
+        # self.data = no_fake_timelines['data'][0:1]
         self.m = len(self.data)
         self.setting = setting
         self.setting_str, self.setting_num = FakeNewsSetter.decode(setting)
@@ -59,14 +59,15 @@ class FakeNewsGenerater(FakenewsGPTResponseGetter):
         docs_num, timeline = timeline_data['docs_num'], timeline_data['timeline']
         timeline = sorted(timeline, key=lambda x: x['date'])
         posi = fake_news_position - 1
-        def _doc_template(doc: Doc):
+        def _doc_template(doc: Doc, with_content: bool = True):
             template = (
                 f"document ID. {doc['ID']}\n"
                 f"headline: {doc['headline']}\n"
                 f"short_description: {doc['short_description']}\n"
                 f"date: {doc['date']}\n"
-                f"content: {doc['content']}\n"
             )
+            if with_content:
+                template += f"content: {doc['content']}\n"
             return template
 
         '''
@@ -81,7 +82,6 @@ class FakeNewsGenerater(FakenewsGPTResponseGetter):
         user_content_1 = (
             "# INSTRUCTIONS\n"
             f"Below are {docs_num} documents about {entity_items}. Each document contains time information (YYYY-MM-DD), forming a timeline.\n"
-            # "Generate ONE fake news based on the following constraints and input documents.\n"
             "You must generate ONE fake news in two steps based on the following constraints and input documents.\n"
             "There needs to be two documents ahead and one behind the fake news."
             f"First of all, please tell me which position from the front is optimal for generating fake news while satisfying the following conditions, and please return that position as a number (3~{len(timeline)-1}).\n"
@@ -102,40 +102,11 @@ class FakeNewsGenerater(FakenewsGPTResponseGetter):
         '''
         user_content_2 = (
             "# INSTRUCTIONS\n"
-            "Generate ONE fake news based on the following constraints and input documents.\n"
-
-            "# CONSTRAINTS\n"
-            "- It needs to contain headline, short_description, date (YYYY-MM-DD), and content properties.\n"
-            "- In a step-by-step manner, first generate the content and date of fake news, and then generate the headline and short description.\n"
-            # f"- Content should be generated with about {content_words} words.\n"
-            f"- Please strictly adhere to around {content_words} words for the content you generate."
-            "- Additionally, explain why you generate such fake news and which parts of the fake news meet the following constraints.\n"
-            "- The fake news that is generated needs to be temporally consistent and naturally connected with the two documents that precede it.\n"
-            # f"- The date of the fake news must be within a period that is later than the oldest date among the {docs_num} documents and earlier than the newest date.\n"
+            "Generate ONE fake news based on the following constraints and input documents by following criteria:\n"
+            f"- It needs to contain headline, short_description, date (YYYY-MM-DD), and content properties, and please strictly adhere to around {content_words} words for the content you generate.\n"
+            "- Additionally, explain how the fake news contradicts the real ones.\n"
+            "\n"
         )
-
-        if self.setting_str == 'rep':
-            # user_content += (
-            #     f"- Please generate fake news by replacing a suitable one among the {docs_num} documents included in the timeline I have entered.\n"
-            #     f"- Please generate the document id and headline of the document to be replaced as remarks.\n"
-            # )
-            user_content_1 += (
-                # "- The fake news that is generated needs to be temporally consistent and naturally connected with the two articles that precede it."
-                # "- However, please ensure that it will be contradictory to the fake news that follows immediately after it in the timeline.\n"
-                "- The fake news is integrated into the timeline by replacing a single document.\n"
-            )
-            user_content_2 += (
-                f"- To avoid any contradictions, please ensure the date of the fake news should be set between {timeline[posi-1]['date']}, and {timeline[posi+1]['date']}."
-                "- Please generate fake news that seamlessly connects with the following two documents and does not contradict them.\n"
-                f"{_doc_template(timeline[posi-2])}\n"
-                f"{_doc_template(timeline[posi-1])}\n"
-            )
-
-        elif self.setting_str == 'ins':
-            # user_content += f"- Please generate fake news to be inserted in the most suitable location in the timeline I have entered.\n"
-            pass
-        else:
-            sys.exit("Setting Error! You can choose 'rep' or 'ins'.")
 
         if self.setting_num == '0':
             pass
@@ -151,11 +122,29 @@ class FakeNewsGenerater(FakenewsGPTResponseGetter):
         elif self.setting_num == '3':
             user_content_1 += f"- The fake news you generate should clearly contradict the original document before replacement.\n"
             user_content_2 += (
-                "- However, ensure that the fake news you generate clearly contradicts the following document.\n"
+                "## criteria1: Ensure that the headline and content of the fake news you generate are contradict to headline and content of the following document."
                 f"{_doc_template(timeline[posi])}\n"
             )
         else:
             sys.exit("Setting Error! You can choose '0' or '1' or '2' or '3'.")
+
+        if self.setting_str == 'rep':
+            user_content_1 += (
+                "- The fake news is integrated into the timeline by replacing a single document.\n"
+            )
+            user_content_2 += (
+                "## criteria2: Please generate fake news that is a possible consequence of the following two documents.\n"
+                f"{_doc_template(timeline[posi-2], with_content=False)}\n"
+                f"{_doc_template(timeline[posi-1], with_content=False)}\n"
+                f"- The date of the fake news you generate should be {timeline[posi]['date']}.\n"
+            )
+
+        elif self.setting_str == 'ins':
+            # user_content += f"- Please generate fake news to be inserted in the most suitable location in the timeline I have entered.\n"
+            # f"- To avoid any contradictions, please ensure the date of the fake news should be set between {timeline[posi-1]['date']}, and {timeline[posi+1]['date']}."
+            pass
+        else:
+            sys.exit("Setting Error! You can choose 'rep' or 'ins'.")
 
         return system_content_1st, user_content_1, system_content_2nd, user_content_2
 
