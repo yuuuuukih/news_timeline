@@ -26,10 +26,11 @@ def main():
     parser.add_argument('--diff', default=7, type=int)
     parser.add_argument('--temp_for_fake_news', default=0.8, type=float)
     parser.add_argument('--setting', default='none', choices=FakeNewsSetter.get_choices())
+    parser.add_argument('--not_filtered', default=False, action='store_true')
     args = parser.parse_args()
 
     # Set the output directory
-    out_dir = os.path.join(args.root_dir, f"diff{args.diff}")
+    out_dir = os.path.join(args.root_dir, f"diff{args.diff}") if args.not_filtered else os.path.join(args.root_dir, f"filtered_diff{args.diff}")
 
     template_no_fake_timemlines: SplitDataset = {
         'name': 'check_fakenews.py',
@@ -50,7 +51,8 @@ def main():
 
     fng = FakeNewsGenerater(template_no_fake_timemlines, args.setting)
     fng.set_gpt_for_fake_news(args.model_name, args.temp_for_fake_news)
-    fng.set_file_to_save(os.path.join(args.root_dir, f"diff{args.diff}_{args.setting}"), 'sample20_0109')
+    dir_name = f"diff{args.diff}_{args.setting}" if args.not_filtered else f"filtered_diff{args.diff}_{args.setting}"
+    fng.set_file_to_save(os.path.join(args.root_dir, dir_name), 'sample20')
     fng.generate_fake_news_timelines()
 
 if __name__ == '__main__':
