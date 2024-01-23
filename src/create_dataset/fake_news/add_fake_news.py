@@ -181,7 +181,10 @@ class FakeNewsGenerater(FakenewsGPTResponseGetter):
     @measure_exe_time
     def generate_fake_news_timelines(self):
         for i, entity_info in enumerate(self.data):
-            entity_id = entity_info['entity_ID']
+            try:
+                entity_id = entity_info['entity_ID']
+            except KeyError:
+                entity_id = entity_info['entity_id']
             entity_items = entity_info['entity_items']
             timelines = entity_info['timeline_info']['data']
             timeline_num = len(timelines)
