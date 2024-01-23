@@ -127,7 +127,7 @@ def main():
     mtg = MultipleTimelineGenerator(keyword_groups_data, args.model_name, args.temp, args.judgement, args.min_docs, args.max_docs, args.top_tl, args.start_entity_id)
     mtg.set_max_reexe_num(args.max_reexe_num)
     mtg.set_rouge_parms(args.alpha, args.th_1, args.th_2, args.th_l, args.th_2_rate, args.th_2_diff, rouge_used=True)
-    mtg.set_file_to_save(json_file_name='timeline_diff6', out_dir=out_dir)
+    mtg.set_file_to_save(json_file_name='timeline_diff7', out_dir=out_dir)
     mtg.generate_multiple_timelines()
 
     '''
