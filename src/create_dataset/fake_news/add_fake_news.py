@@ -210,13 +210,15 @@ class FakeNewsGenerater(FakenewsGPTResponseGetter):
                     fake_news = self.get_fake_news(entity_items, timeline_data)
                     try:
                         if (self.is_valid_date_format(fake_news['date'])
-                            and 150<len(fake_news['content'].split())<250):
+                            and 150<=len(fake_news['content'].split())<=250):
                             prev_date = datetime.strptime(timeline_data['timeline'][self.position-1]['date'], '%Y-%m-%d')
                             next_date = datetime.strptime(timeline_data['timeline'][self.position+1]['date'], '%Y-%m-%d')
                             fake_date = datetime.strptime(fake_news['date'], '%Y-%m-%d')
 
-                            if prev_date < fake_date < next_date:
+                            if prev_date <= fake_date <= next_date:
                                 break
+                            else:
+                                print(f"Invalid output (date = {fake_news['date']}, but prev_date is {timeline_data['timeline'][self.position-1]['date']} and next_date is {timeline_data['timeline'][self.position+1]['date']}). Retry...")
                         else:
                             print(f"Invalid output (content len = {len(fake_news['content'].split())}). Retry...")
                     except Exception as e:
